@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// 드래그 이동·쿼터뷰 기준 회전·존에서의 이동 잠금
 public class HyperCasualPlayerController : MonoBehaviour
 {
     [Header("Movement")]
@@ -22,6 +23,7 @@ public class HyperCasualPlayerController : MonoBehaviour
     public bool HasMovementInput => currentMoveDirection.sqrMagnitude > (moveDetectionThreshold * moveDetectionThreshold);
     public float MoveSpeed => moveSpeed;
 
+    // 카메라 참조 보완, 카메라 전방을 기본 idle 바라보기 방향으로
     private void Awake()
     {
         if (gameplayCamera == null)
@@ -39,6 +41,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         }
     }
 
+    // 드래그 입력 → 이동 → 회전 순 처리
     private void Update()
     {
         ReadDragInput();
@@ -46,6 +49,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         UpdateRotation();
     }
 
+    // 터치 1개 또는 마우스로 드래그 델타 갱신
     private void ReadDragInput()
     {
         if (Input.touchCount > 0)
@@ -90,6 +94,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         }
     }
 
+    // 카메라 평면 기준 이동 (잠금 시 속도 0)
     private void UpdateMovement()
     {
         if (gameplayCamera == null)
@@ -117,6 +122,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         transform.position += currentMoveDirection * (moveSpeed * Time.deltaTime);
     }
 
+    // 이동 중: 이동 방향, 정지: idle 타겟 또는 기본 방향
     private void UpdateRotation()
     {
         Vector3 lookDirection;
@@ -149,6 +155,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationLerpSpeed * Time.deltaTime);
     }
 
+    // 존 상호작용 등 — 드래그 이동 허용/차단
     public void SetMovementLocked(bool locked)
     {
         isMovementLocked = locked;
@@ -160,6 +167,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         }
     }
 
+    // 스탯·업그레이드 반영용 이동 속도 설정
     public void SetMoveSpeed(float newMoveSpeed)
     {
         moveSpeed = Mathf.Max(0f, newMoveSpeed);

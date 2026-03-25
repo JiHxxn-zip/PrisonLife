@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// Orthographic 쿼터뷰 + 타깃 추적
 [RequireComponent(typeof(Camera))]
 public class QuarterViewCameraRig : MonoBehaviour
 {
@@ -19,12 +20,14 @@ public class QuarterViewCameraRig : MonoBehaviour
 
     private Camera cam;
 
+    // Camera 캐시 후 Orthographic 설정 적용
     private void Awake()
     {
         cam = GetComponent<Camera>();
         ApplyCameraSettings();
     }
 
+    // 인스펙터 값 변경 시 에디터에서도 투영 설정 동기화
     private void OnValidate()
     {
         if (cam == null)
@@ -38,6 +41,7 @@ public class QuarterViewCameraRig : MonoBehaviour
         }
     }
 
+    // 타깃 뒤·위 오프셋으로 쿼터뷰 위치·회전 유지
     private void LateUpdate()
     {
         if (target == null)
@@ -58,6 +62,7 @@ public class QuarterViewCameraRig : MonoBehaviour
         );
     }
 
+    // 평행 투영·orthographicSize 고정
     private void ApplyCameraSettings()
     {
         cam.orthographic = true;
