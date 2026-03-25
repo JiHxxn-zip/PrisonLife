@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-// 플레이어의 등(뒤)에 아이템 프리팹을 위로 차곡차곡 쌓는 인벤토리/스태커
+// 플레이어 등 뒤에 Metal(최우선, Max 있음) + Money(무제한)를 Y축으로 적층
+// 정렬 규칙: 항상 Metal이 index 0부터 먼저, Money는 Metal 뒤에서 이어서 배치
 public class ItemStackInventory : MonoBehaviour
 {
     [Serializable]
@@ -13,25 +14,32 @@ public class ItemStackInventory : MonoBehaviour
         public GameObject prefab;
     }
 
-    [Header("Stack Layout")]
+    [Header("Back Anchor")]
     [SerializeField] private Transform backAnchor;
-    [SerializeField] private Vector3 stackLocalOffset = new Vector3(0f, 0f, 0f);
+    [Tooltip("슬롯 위치를 직접 지정하고 싶을 때 사용 (index 순서대로 배치)")]
+    [SerializeField] private List<Transform> backAnchors = new List<Transform>();
+    [SerializeField] private Vector3 stackLocalOffset = Vector3.zero;
     [SerializeField] private float stackSpacingY = 0.18f;
-    [SerializeField] private int maxStackCount = 10;
+
+    [Header("Limits (Metal only)")]
+    [SerializeField] private int maxMetalCount = 10;
 
     [Header("Prefabs")]
     [SerializeField] private List<ItemPrefabEntry> itemPrefabs = new List<ItemPrefabEntry>();
 
     [Header("UI")]
-    [Tooltip("최대치 도달 시 활성화할 World Space UI(TMP Text)")]
+    [Tooltip("Metal이 최대치에 도달하면 활성화 (World Space TMP Text)")]
     [SerializeField] private TMP_Text maxTextWorld;
 
     private readonly Dictionary<ItemType, GameObject> prefabByType = new Dictionary<ItemType, GameObject>();
-    private readonly List<GameObject> spawnedItems = new List<GameObject>();
+    private readonly List<GameObject> metalVisuals = new List<GameObject>();
+    private readonly List<GameObject> moneyVisuals = new List<GameObject>();
     private bool initialized;
 
-    public int CurrentCount => spawnedItems.Count;
-    public bool IsFull => CurrentCount >= maxStackCount;
+    public int MetalCount => metalVisuals.Count;
+    public int MoneyCount => moneyVisuals.Count;
+    public int TotalCount => metalVisuals.Count + moneyVisuals.Count;
+    public bool IsMetalFull => MetalCount >= maxMetalCount;
 
     private void Awake()
     {
@@ -64,60 +72,160 @@ public class ItemStackInventory : MonoBehaviour
             prefabByType[entry.itemType] = entry.prefab;
         }
 
-        // 씬에 이미 남아있는 오브젝트가 있다면 제거(초기화를 깔끔히)
-        for (int i = spawnedItems.Count - 1; i >= 0; i--)
-        {
-            if (spawnedItems[i] != null)
-            {
-                Destroy(spawnedItems[i]);
-            }
-        }
-        spawnedItems.Clear();
-
-        UpdateMaxText();
+        ClearAll();
     }
 
     public bool TryAddItem(ItemType itemType)
     {
-        if (IsFull)
+        if (itemType == ItemType.Metal)
         {
-            Debug.Log($"[ItemStack] MAX — 더 이상 획득 불가 ({CurrentCount}/{maxStackCount})");
+            if (IsMetalFull)
+            {
+                Debug.Log($"[ItemStack] Metal MAX — 더 이상 획득 불가 ({MetalCount}/{maxMetalCount})");
+                UpdateMaxText();
+                return false;
+            }
+
+            if (!prefabByType.TryGetValue(ItemType.Metal, out GameObject prefab) || prefab == null)
+            {
+                Debug.LogWarning("[ItemStack] Metal Prefab 미설정");
+                return false;
+            }
+
+            GameObject instance = Instantiate(prefab, backAnchor);
+            metalVisuals.Add(instance);
+            RebuildAllTransforms();
             UpdateMaxText();
-            return false;
+            Debug.Log($"[ItemStack] 획득 +1 Metal ({MetalCount}/{maxMetalCount})");
+            return true;
         }
 
-        if (!prefabByType.TryGetValue(itemType, out GameObject prefab) || prefab == null)
+        if (itemType == ItemType.Money)
         {
-            Debug.LogWarning($"[ItemStack] Prefab 미설정: {itemType}");
+            if (!prefabByType.TryGetValue(ItemType.Money, out GameObject prefab) || prefab == null)
+            {
+                Debug.LogWarning("[ItemStack] Money Prefab 미설정");
+                return false;
+            }
+
+            GameObject instance = Instantiate(prefab, backAnchor);
+            moneyVisuals.Add(instance);
+            RebuildAllTransforms();
+            // Money은 무제한이므로 MAX UI는 Metal 상태만 반영
+            UpdateMaxText();
+            Debug.Log($"[ItemStack] 획득 +1 Money ({MoneyCount} 보유)");
+            return true;
+        }
+
+        // Handcuffs 등 다른 타입은 등 뒤 인벤토리 시스템에서 다루지 않음
+        Debug.LogWarning($"[ItemStack] 등 뒤 스택은 {itemType}을 지원하지 않습니다.");
+        return false;
+    }
+
+    // 특정 타입 현재 개수 조회
+    public int GetCountByType(ItemType itemType)
+    {
+        if (itemType == ItemType.Metal) return MetalCount;
+        if (itemType == ItemType.Money) return MoneyCount;
+        return 0;
+    }
+
+    // Metal을 LIFO로 제거 (Money는 제거 규칙이 별도로 없으므로 여기서는 false)
+    public bool TryRemoveLastOfType(ItemType itemType)
+    {
+        if (itemType != ItemType.Metal)
+        {
             return false;
         }
 
-        int index = CurrentCount; // 새로 추가될 자리(0부터)
+        if (metalVisuals.Count <= 0)
+        {
+            return false;
+        }
 
-        GameObject instance = Instantiate(prefab, backAnchor);
-        instance.transform.localPosition = stackLocalOffset + new Vector3(0f, stackSpacingY * index, 0f);
-        instance.transform.localRotation = Quaternion.identity;
+        int lastIndex = metalVisuals.Count - 1;
+        GameObject visual = metalVisuals[lastIndex];
+        metalVisuals.RemoveAt(lastIndex);
 
-        spawnedItems.Add(instance);
+        if (visual != null)
+        {
+            visual.SetActive(false);
+            Destroy(visual);
+        }
 
-        Debug.Log($"[ItemStack] 획득 +1 {itemType} ({CurrentCount}/{maxStackCount})");
-
+        RebuildAllTransforms();
         UpdateMaxText();
+        Debug.Log($"[ItemStack] 제거 -1 Metal ({MetalCount}/{maxMetalCount})");
         return true;
     }
 
-    // 추후 "판매/버리기" 같은 기능을 붙이기 위해 비우는 메서드도 제공
+    // 등 뒤 시각 오브젝트 전부 제거
     public void ClearAll()
     {
-        for (int i = spawnedItems.Count - 1; i >= 0; i--)
+        for (int i = metalVisuals.Count - 1; i >= 0; i--)
         {
-            if (spawnedItems[i] != null)
+            if (metalVisuals[i] != null)
             {
-                Destroy(spawnedItems[i]);
+                Destroy(metalVisuals[i]);
             }
         }
-        spawnedItems.Clear();
+        metalVisuals.Clear();
+
+        for (int i = moneyVisuals.Count - 1; i >= 0; i--)
+        {
+            if (moneyVisuals[i] != null)
+            {
+                Destroy(moneyVisuals[i]);
+            }
+        }
+        moneyVisuals.Clear();
+
         UpdateMaxText();
+    }
+
+    // Metal이 항상 index 0부터, Money는 Metal 뒤에서 이어서 배치되도록 재정렬
+    private void RebuildAllTransforms()
+    {
+        // Metal: 0..metalCount-1
+        for (int i = 0; i < metalVisuals.Count; i++)
+        {
+            SetLocalForSlot(metalVisuals[i], i);
+        }
+
+        // Money: metalCount..metalCount+moneyCount-1
+        int moneyStartIndex = metalVisuals.Count;
+        for (int j = 0; j < moneyVisuals.Count; j++)
+        {
+            SetLocalForSlot(moneyVisuals[j], moneyStartIndex + j);
+        }
+    }
+
+    private void SetLocalForSlot(GameObject visual, int slotIndex)
+    {
+        if (visual == null)
+        {
+            return;
+        }
+
+        visual.transform.localPosition = GetLocalSlotPosition(slotIndex);
+        visual.transform.localRotation = Quaternion.identity;
+    }
+
+    private Vector3 GetLocalSlotPosition(int index)
+    {
+        if (backAnchors != null && index >= 0 && index < backAnchors.Count && backAnchors[index] != null)
+        {
+            // backAnchors를 "월드 좌표"로 잡아뒀을 때를 대비
+            if (backAnchor != null)
+            {
+                return backAnchor.InverseTransformPoint(backAnchors[index].position);
+            }
+
+            return backAnchors[index].localPosition;
+        }
+
+        // 슬롯이 backAnchors를 넘어서면 spacingY 기반으로 계속 위로 적층
+        return stackLocalOffset + new Vector3(0f, stackSpacingY * index, 0f);
     }
 
     private void UpdateMaxText()
@@ -128,7 +236,7 @@ public class ItemStackInventory : MonoBehaviour
         }
 
         maxTextWorld.text = "MAX";
-        maxTextWorld.gameObject.SetActive(IsFull);
+        maxTextWorld.gameObject.SetActive(IsMetalFull);
     }
 }
 

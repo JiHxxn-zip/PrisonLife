@@ -8,6 +8,9 @@ public class PlayerAgent : MonoBehaviour
     [Header("Item Stack")]
     [SerializeField] private ItemStackInventory itemStackInventory;
 
+    [Header("Handcuffs Hold")]
+    [SerializeField] private HandcuffsHoldStack handcuffsHoldStack;
+
     private HyperCasualPlayerController movementController;
     private BaseZone currentInteractionZone;
     private bool isMovementLockedByZone;
@@ -24,6 +27,11 @@ public class PlayerAgent : MonoBehaviour
         if (itemStackInventory != null)
         {
             itemStackInventory.Initialize();
+        }
+
+        if (handcuffsHoldStack == null)
+        {
+            handcuffsHoldStack = GetComponentInChildren<HandcuffsHoldStack>();
         }
     }
 
@@ -47,14 +55,20 @@ public class PlayerAgent : MonoBehaviour
     // 외부(존/상호작용/아이템 오브젝트)가 호출하는 "획득" 진입점
     public bool CollectItem(ItemType itemType, int count = 1)
     {
+        return CollectItems(itemType, count) > 0;
+    }
+
+    // 아이템 여러 개 획득 시도 후, 실제로 쌓인 개수 반환
+    public int CollectItems(ItemType itemType, int count = 1)
+    {
         if (itemStackInventory == null)
         {
             Debug.LogWarning("[PlayerAgent] ItemStackInventory가 설정되어 있지 않습니다.");
-            return false;
+            return 0;
         }
 
         int safeCount = Mathf.Max(0, count);
-        bool anyAdded = false;
+        int addedCount = 0;
         for (int i = 0; i < safeCount; i++)
         {
             bool added = itemStackInventory.TryAddItem(itemType);
@@ -64,9 +78,31 @@ public class PlayerAgent : MonoBehaviour
                 break;
             }
 
-            anyAdded = true;
+            addedCount++;
         }
 
-        return anyAdded;
+        return addedCount;
+    }
+
+    // 특정 타입 보유 개수 조회
+    public int GetItemCount(ItemType itemType)
+    {
+        return itemStackInventory != null ? itemStackInventory.GetCountByType(itemType) : 0;
+    }
+
+    // 특정 타입을 가장 최근에 쌓인 것부터 1개 제거 (LIFO)
+    public bool TryRemoveLastItem(ItemType itemType)
+    {
+        if (itemStackInventory == null)
+        {
+            return false;
+        }
+
+        return itemStackInventory.TryRemoveLastOfType(itemType);
+    }
+
+    public HandcuffsHoldStack GetHandcuffsHoldStack()
+    {
+        return handcuffsHoldStack;
     }
 }
