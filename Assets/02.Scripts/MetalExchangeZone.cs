@@ -1,86 +1,80 @@
+using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using UnityEngine;
 
-// Metal 판매(입금) + Handcuffs 생산/적치 + Handcuffs 수집(이동)까지 한 구역에서 관리
+// 플레이어 진입 시:
+//  1) 보유 Metal 비주얼 전체를 sellPos로 즉시 이동 (플레이어 인벤토리 비움)
+//  2) processInterval(0.2s)마다 Metal 1개 비활성화 + Handcuffs 1개 생산 (동시)
+//  HandcuffsMoneyExchangeZone과 동일한 구조
 public class MetalExchangeZone : MonoBehaviour
 {
-    [Header("Production")]
+    [Header("Metal Sell Position")]
+    [SerializeField] private Transform sellPos;
+    [SerializeField] private Vector3 metalLocalOffset = Vector3.zero;
+    [SerializeField] private float metalSpacingY = 0.18f;
+
+    [Header("Handcuffs Production")]
     [SerializeField] private GameObject handcuffsPrefab;
     [SerializeField] private Transform handcuffsAnchor;
     [SerializeField] private Vector3 handcuffsLocalOffset = Vector3.zero;
     [SerializeField] private float handcuffsSpacingY = 0.15f;
-    [SerializeField] private float handcuffsSpawnIntervalSeconds = 0.3f;
 
-    [Header("Sell")]
-    [SerializeField] private float metalRemoveIntervalSeconds = 0.1f;
+    [Header("Timing")]
+    [Tooltip("Metal 1개 비활성화 + Handcuffs 1개 생산 간격 (초)")]
+    [SerializeField] private float processInterval = 0.2f;
 
-    private readonly Dictionary<PlayerAgent, CancellationTokenSource> sellCtsByPlayer = new Dictionary<PlayerAgent, CancellationTokenSource>();
-
-    // 판매된 Metal 개수만큼 생성해야 해서, 대기열로 쌓아둠
-    private int pendingHandcuffsToSpawn;
-    private bool spawnLoopRunning;
-    private CancellationTokenSource spawnLoopCts;
-
-    // 구역 바닥에 쌓인 Handcuffs 비주얼(수집 시 플레이어로 이동)
+    // sellPos에 이동된 Metal 비주얼
+    private readonly List<GameObject> zoneMetals = new List<GameObject>();
+    // Handcuffs 오브젝트 풀
+    private readonly List<GameObject> handcuffsPool = new List<GameObject>();
+    // 수집 대기 중인 생산된 Handcuffs
     private readonly List<GameObject> producedHandcuffs = new List<GameObject>();
 
-    private readonly HashSet<PlayerAgent> activeSellingPlayers = new HashSet<PlayerAgent>();
+    private bool isProcessing;
 
     private void Awake()
     {
-        if (handcuffsAnchor == null)
-        {
-            handcuffsAnchor = transform;
-        }
+        if (sellPos == null) sellPos = transform;
+        if (handcuffsAnchor == null) handcuffsAnchor = transform;
     }
 
+    // MetalExchangeSellTrigger에서 호출
     public void RequestStartSelling(PlayerAgent player)
     {
-        if (player == null)
+        if (player == null || isProcessing) return;
+
+        ItemStackInventory inventory = player.GetComponentInChildren<ItemStackInventory>();
+        if (inventory == null || inventory.MetalCount <= 0) return;
+
+        // 1) 플레이어 Metal 비주얼 전부 sellPos로 이전 (인벤토리에서 분리)
+        List<GameObject> metals = inventory.ReleaseActiveMetal();
+        if (metals.Count == 0) return;
+
+        foreach (GameObject m in metals)
         {
-            return;
+            if (m == null) continue;
+            m.transform.SetParent(sellPos, false);
+            zoneMetals.Add(m);
+
+            // sellPos에 올라온 Metal은 플레이어가 다시 줍지 못하도록
+            ItemPickup pickup = m.GetComponent<ItemPickup>();
+            if (pickup != null) pickup.SetPickupEnabled(false);
         }
 
-        if (sellCtsByPlayer.ContainsKey(player))
-        {
-            return;
-        }
+        RebuildMetalTransforms();
 
-        activeSellingPlayers.Add(player);
-
-        CancellationTokenSource cts = new CancellationTokenSource();
-        sellCtsByPlayer[player] = cts;
-        _ = SellLoopAsync(player, cts.Token);
-
-        StartSpawnLoopIfNeeded();
+        // 2) 스텝마다 Metal 1개 비활성화 + Handcuffs 1개 생산
+        StartCoroutine(ProcessCycle());
+        Debug.Log($"[MetalExchangeZone] Metal {metals.Count}개 sellPos 이전 완료, 처리 시작");
     }
 
-    public void RequestStopSelling(PlayerAgent player)
-    {
-        if (player == null)
-        {
-            return;
-        }
+    // 기존 호출 호환성 유지 (no-op)
+    public void RequestStopSelling(PlayerAgent player) { }
 
-        activeSellingPlayers.Remove(player);
-
-        if (sellCtsByPlayer.TryGetValue(player, out CancellationTokenSource cts))
-        {
-            sellCtsByPlayer.Remove(player);
-            cts.Cancel();
-            cts.Dispose();
-        }
-    }
-
-    // Handcuffs 수집 트리거에서 호출
+    // MetalExchangeHandcuffsCollectTrigger에서 호출
     public void CollectAllProducedHandcuffs(PlayerAgent player)
     {
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
         HandcuffsHoldStack holdStack = player.GetHandcuffsHoldStack();
         if (holdStack == null)
@@ -89,137 +83,99 @@ public class MetalExchangeZone : MonoBehaviour
             return;
         }
 
-        if (producedHandcuffs.Count == 0)
-        {
-            return;
-        }
+        if (producedHandcuffs.Count == 0) return;
 
         holdStack.AddRange(producedHandcuffs);
+
+        // 플레이어에게 이전됐으니 풀에서도 제거
+        foreach (GameObject hc in producedHandcuffs)
+        {
+            handcuffsPool.Remove(hc);
+        }
+
         producedHandcuffs.Clear();
     }
 
-    private void StartSpawnLoopIfNeeded()
+    // processInterval마다 Metal 1개 비활성화 + Handcuffs 1개 생산 (HandcuffsMoneyExchangeZone 동일 구조)
+    private IEnumerator ProcessCycle()
     {
-        if (spawnLoopRunning)
+        isProcessing = true;
+
+        while (zoneMetals.Count > 0)
         {
-            return;
+            yield return new WaitForSeconds(Mathf.Max(0.01f, processInterval));
+
+            // Metal 뒤에서부터 1개 비활성화
+            int last = zoneMetals.Count - 1;
+            if (zoneMetals[last] != null)
+                zoneMetals[last].SetActive(false);
+            zoneMetals.RemoveAt(last);
+
+            // Handcuffs 1개 생산
+            SpawnOneHandcuff();
+
+            Debug.Log($"[MetalExchangeZone] Metal → Handcuffs 변환 (남은 Metal: {zoneMetals.Count})");
         }
 
-        if (handcuffsPrefab == null)
-        {
-            Debug.LogWarning("[MetalExchangeZone] handcuffsPrefab이 비어 있습니다.");
-            return;
-        }
-
-        spawnLoopRunning = true;
-        spawnLoopCts = new CancellationTokenSource();
-        _ = SpawnLoopAsync(spawnLoopCts.Token);
+        isProcessing = false;
+        Debug.Log("[MetalExchangeZone] 전체 처리 완료");
     }
 
-    private async Task SellLoopAsync(PlayerAgent player, CancellationToken token)
+    private void SpawnOneHandcuff()
     {
-        int waitMs = Mathf.CeilToInt(Mathf.Max(0.01f, metalRemoveIntervalSeconds) * 1000f);
+        if (handcuffsPrefab == null) return;
 
-        while (!token.IsCancellationRequested && activeSellingPlayers.Contains(player))
-        {
-            // LIFO: Metal을 하나 제거할 때마다 Handcuffs 생산 대기열 +1
-            bool removed = player.TryRemoveLastItem(ItemType.Metal);
-            if (!removed)
-            {
-                // 더 이상 제거할 Metal이 없음(또는 MAX 상태가 해제됨). 플레이어가 존에 있어도 루프를 종료.
-                break;
-            }
+        // 현재 쌓인 수 기준으로 y=0부터 슬롯 결정
+        int slot = producedHandcuffs.Count;
 
-            lock (this)
-            {
-                pendingHandcuffsToSpawn++;
-            }
+        GameObject instance = GetOrCreateHandcuff();
+        instance.SetActive(true);
 
-            await DelayWithToken(waitMs, token);
-        }
-    }
-
-    private async Task SpawnLoopAsync(CancellationToken token)
-    {
-        int waitMs = Mathf.CeilToInt(Mathf.Max(0.01f, handcuffsSpawnIntervalSeconds) * 1000f);
-
-        while (!token.IsCancellationRequested)
-        {
-            bool shouldStop;
-            int pending;
-            lock (this)
-            {
-                pending = pendingHandcuffsToSpawn;
-                shouldStop = activeSellingPlayers.Count == 0 && pendingHandcuffsToSpawn <= 0;
-            }
-
-            if (shouldStop)
-            {
-                break;
-            }
-
-            if (pending > 0)
-            {
-                lock (this)
-                {
-                    pendingHandcuffsToSpawn--;
-                }
-
-                SpawnOneHandcuffVisual();
-                await DelayWithToken(waitMs, token);
-            }
-            else
-            {
-                // pending이 생길 때까지 약간 대기
-                await DelayWithToken(50, token);
-            }
-        }
-
-        spawnLoopRunning = false;
-        spawnLoopCts?.Dispose();
-        spawnLoopCts = null;
-    }
-
-    private void SpawnOneHandcuffVisual()
-    {
-        if (handcuffsPrefab == null || handcuffsAnchor == null)
-        {
-            return;
-        }
-
-        GameObject instance = Instantiate(handcuffsPrefab, handcuffsAnchor);
-        int index = producedHandcuffs.Count;
-        instance.transform.localPosition = handcuffsLocalOffset + new Vector3(0f, handcuffsSpacingY * index, 0f);
+        Vector3 lp = handcuffsLocalOffset;
+        lp.x = 0f;
+        lp.z = 0f;
+        lp.y = handcuffsLocalOffset.y + handcuffsSpacingY * slot;
+        instance.transform.localPosition = lp;
         instance.transform.localRotation = Quaternion.identity;
 
         producedHandcuffs.Add(instance);
     }
 
-    private static async Task DelayWithToken(int milliseconds, CancellationToken token)
+    // 비활성 Handcuffs 재사용, 없으면 새로 생성
+    private GameObject GetOrCreateHandcuff()
     {
-        try
+        for (int i = 0; i < handcuffsPool.Count; i++)
         {
-            await Task.Delay(milliseconds, token);
+            if (handcuffsPool[i] != null && !handcuffsPool[i].activeSelf)
+            {
+                handcuffsPool[i].transform.SetParent(handcuffsAnchor, false);
+                return handcuffsPool[i];
+            }
         }
-        catch (TaskCanceledException)
+
+        GameObject instance = Instantiate(handcuffsPrefab, handcuffsAnchor);
+        instance.name = $"Handcuffs_Zone_{handcuffsPool.Count}";
+        handcuffsPool.Add(instance);
+        return instance;
+    }
+
+    private void RebuildMetalTransforms()
+    {
+        for (int i = 0; i < zoneMetals.Count; i++)
         {
-            // canceled
+            if (zoneMetals[i] == null) continue;
+            Vector3 lp = metalLocalOffset;
+            lp.x = 0f;
+            lp.z = 0f;
+            lp.y = metalLocalOffset.y + metalSpacingY * i;
+            zoneMetals[i].transform.localPosition = lp;
+            zoneMetals[i].transform.localRotation = Quaternion.identity;
         }
     }
 
     private void OnDisable()
     {
-        foreach (var kv in sellCtsByPlayer)
-        {
-            kv.Value.Cancel();
-            kv.Value.Dispose();
-        }
-        sellCtsByPlayer.Clear();
-
-        spawnLoopCts?.Cancel();
-        spawnLoopCts?.Dispose();
-        spawnLoopCts = null;
-        spawnLoopRunning = false;
+        StopAllCoroutines();
+        isProcessing = false;
     }
 }
-

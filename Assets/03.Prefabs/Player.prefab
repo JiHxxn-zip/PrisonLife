@@ -263,6 +263,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 676842d4828e2614b96301716fe63917, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerLevel: 1
   itemStackInventory: {fileID: 6478446325043559793}
   handcuffsHoldStack: {fileID: 1224356997149987332}
 --- !u!114 &6478446325043559793
@@ -277,13 +278,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 362c84e033f721448bf0a34314404dc1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  backAnchor: {fileID: 2454216023963715671}
   backAnchors:
   - {fileID: 2454216023963715671}
   - {fileID: 4318150805247902648}
   stackLocalOffset: {x: 0, y: 0, z: 0}
   stackSpacingY: 0.18
-  maxMetalCount: 15
+  maxMetalCountAtLevel1: 10
+  maxMetalCountPerLevel: 2
   itemPrefabs:
   - itemType: 0
     prefab: {fileID: 6835853503147817539, guid: d971486e9a7ec144ea92afdf53da5313,
@@ -294,6 +295,9 @@ MonoBehaviour:
     prefab: {fileID: 3913780994475955751, guid: 54885c7f5bccae243b77082b61a37b88,
       type: 3}
   maxTextWorld: {fileID: 4813481039810284768}
+  maxTextDisplaySeconds: 2
+  maxTextCooldownSeconds: 2
+  moneyValuePerItem: 10
 --- !u!54 &2489307131369416134
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -426,7 +430,7 @@ RectTransform:
   m_GameObject: {fileID: 6634551592902804153}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: -1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7857931105909511595}

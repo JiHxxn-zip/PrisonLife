@@ -17,6 +17,9 @@ public class CollectionZonePool : MonoBehaviour
     [SerializeField] private Vector3 gridOriginLocalOffset = Vector3.zero;
     [SerializeField] private bool activateAllOnStart = true;
 
+    [Header("Respawn")]
+    [SerializeField] private float respawnDelaySeconds = 3f;
+
     private readonly List<GameObject> pooledItems = new List<GameObject>();
     private Vector3 itemFootprint = new Vector3(1f, 1f, 1f);
 
@@ -54,7 +57,8 @@ public class CollectionZonePool : MonoBehaviour
             {
                 pickup = instance.AddComponent<ItemPickup>();
             }
-            pickup.Configure(pooledItemType, pickupCountPerItem, false);
+            // 수집 시 비활성화 후, 3초 뒤 같은 오브젝트를 재활성화한다.
+            pickup.Configure(pooledItemType, pickupCountPerItem, false, this, respawnDelaySeconds);
 
             pooledItems.Add(instance);
         }

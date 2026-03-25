@@ -5,6 +5,11 @@ using UnityEngine;
 [RequireComponent(typeof(HyperCasualPlayerController))]
 public class PlayerAgent : MonoBehaviour
 {
+    [Header("Progression")]
+    [SerializeField] private int playerLevel = 1;
+
+    public int Level => Mathf.Max(1, playerLevel);
+
     [Header("Item Stack")]
     [SerializeField] private ItemStackInventory itemStackInventory;
 
