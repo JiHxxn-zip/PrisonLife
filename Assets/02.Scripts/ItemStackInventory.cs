@@ -49,11 +49,47 @@ public class ItemStackInventory : MonoBehaviour
     private float nextMaxTriggerTime;
     private Coroutine maxTextCoroutine;
 
+    // LevelUpZone 등 외부에서 Metal Max를 조정할 때 사용
+    private int metalMaxBonus;
+    private float metalMaxMultiplier = 1f;
+
     public int MetalCount => CountActive(metalVisuals);
     public int MoneyCount => CountActive(moneyVisuals);
     public int TotalCount => MetalCount + MoneyCount;
     public int MoneyValuePerItem => moneyValuePerItem;
     public int MoneyTotalValue => MoneyCount * moneyValuePerItem;
+
+    // Metal Max에 고정 보너스를 더함 (1단계 업그레이드)
+    public void AddMetalMaxBonus(int bonus)
+    {
+        metalMaxBonus += bonus;
+    }
+
+    // Metal Max에 배율을 적용 (2단계 업그레이드)
+    public void SetMetalMaxMultiplier(float multiplier)
+    {
+        metalMaxMultiplier = Mathf.Max(1f, multiplier);
+    }
+
+    // 지정 금액만큼 Money 아이템을 소모. 금액이 부족하면 false 반환
+    public bool TryConsumeMoneyValue(int value)
+    {
+        int itemsNeeded = Mathf.CeilToInt((float)value / Mathf.Max(1, moneyValuePerItem));
+        if (MoneyCount < itemsNeeded) return false;
+
+        int consumed = 0;
+        for (int i = moneyVisuals.Count - 1; i >= 0 && consumed < itemsNeeded; i--)
+        {
+            if (moneyVisuals[i] != null && moneyVisuals[i].activeSelf)
+            {
+                moneyVisuals[i].SetActive(false);
+                consumed++;
+            }
+        }
+
+        RebuildAllTransforms();
+        return consumed >= itemsNeeded;
+    }
 
     private void Awake()
     {
@@ -380,7 +416,8 @@ public class ItemStackInventory : MonoBehaviour
     {
         int level = playerAgent != null ? playerAgent.Level : 1;
         int safeLevel = Mathf.Max(1, level);
-        return Mathf.Max(0, maxMetalCountAtLevel1 + (safeLevel - 1) * Mathf.Max(0, maxMetalCountPerLevel));
+        int baseMax = Mathf.Max(0, maxMetalCountAtLevel1 + (safeLevel - 1) * Mathf.Max(0, maxMetalCountPerLevel));
+        return Mathf.Max(0, Mathf.RoundToInt((baseMax + metalMaxBonus) * metalMaxMultiplier));
     }
 
     private void TriggerMaxTextIfAllowed()

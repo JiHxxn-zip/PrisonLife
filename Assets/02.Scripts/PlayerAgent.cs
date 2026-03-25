@@ -110,4 +110,9 @@ public class PlayerAgent : MonoBehaviour
     {
         return handcuffsHoldStack;
     }
+
+    public void AddLevel(int amount)
+    {
+        playerLevel = Mathf.Max(1, playerLevel + Mathf.Max(0, amount));
+    }
 }
