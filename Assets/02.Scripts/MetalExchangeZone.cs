@@ -2,10 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 플레이어 진입 시:
-//  1) 보유 Metal 비주얼 전체를 sellPos로 즉시 이동 (플레이어 인벤토리 비움)
-//  2) processInterval(0.2s)마다 Metal 1개 비활성화 + Handcuffs 1개 생산 (동시)
-//  HandcuffsMoneyExchangeZone과 동일한 구조
+// 플레이어: Metal 비주얼 전체를 sellPos로 이전 → processInterval마다 Metal 1개 비활성화 + Handcuffs 1개 생산
+// NPC: LaunchMetalFrom() 호출 → Metal이 포물선으로 sellPos에 날아와 쌓임 → 동일하게 ProcessCycle 진행
 public class MetalExchangeZone : MonoBehaviour
 {
     [Header("Metal Sell Position")]
@@ -23,14 +21,26 @@ public class MetalExchangeZone : MonoBehaviour
     [Tooltip("Metal 1개 비활성화 + Handcuffs 1개 생산 간격 (초)")]
     [SerializeField] private float processInterval = 0.2f;
 
-    // sellPos에 이동된 Metal 비주얼
+    [Header("NPC Arc Flight")]
+    [Tooltip("NPC가 날려 보내는 Metal 비주얼 프리팹 (CollectionZone Metal과 동일 프리팹 권장)")]
+    [SerializeField] private GameObject metalPrefab;
+    [Tooltip("포물선 최고점 높이")]
+    [SerializeField] private float arcHeight = 2.5f;
+    [Tooltip("sellPos까지 비행 시간 (초)")]
+    [SerializeField] private float arcFlightDuration = 0.6f;
+
+    // sellPos에 이동된 Metal 비주얼 (플레이어 판매 / NPC 납품 공통)
     private readonly List<GameObject> zoneMetals = new List<GameObject>();
     // Handcuffs 오브젝트 풀
     private readonly List<GameObject> handcuffsPool = new List<GameObject>();
     // 수집 대기 중인 생산된 Handcuffs
     private readonly List<GameObject> producedHandcuffs = new List<GameObject>();
+    // NPC 포물선 비행용 Metal 풀 (sellPos 도달 후 zoneMetals로 이관)
+    private readonly List<GameObject> flyingMetalPool = new List<GameObject>();
 
     private bool isProcessing;
+
+    public Transform SellPos => sellPos;
 
     private void Awake()
     {
@@ -38,15 +48,106 @@ public class MetalExchangeZone : MonoBehaviour
         if (handcuffsAnchor == null) handcuffsAnchor = transform;
     }
 
+    // ── NPC 전용 ──────────────────────────────────────────────
+
+    // NPC 수집 완료 시 호출 — 포물선으로 sellPos까지 날아와 쌓임
+    public void LaunchMetalFrom(Vector3 worldPos)
+    {
+        if (metalPrefab == null)
+        {
+            Debug.LogWarning("[MetalExchangeZone] metalPrefab 미설정 — NPC 납품 연출 생략");
+            return;
+        }
+
+        GameObject go = GetOrCreateFlyingMetal();
+        go.transform.position = worldPos;
+        go.transform.SetParent(null, true); // 비행 중 월드 공간 유지
+        go.SetActive(true);
+
+        StartCoroutine(ArcFlight(go, worldPos));
+    }
+
+    private IEnumerator ArcFlight(GameObject metalGo, Vector3 from)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < arcFlightDuration)
+        {
+            if (metalGo == null) yield break;
+
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / arcFlightDuration);
+
+            // 포물선: Lerp + sin 아치
+            Vector3 pos = Vector3.Lerp(from, sellPos.position, t);
+            pos.y += arcHeight * Mathf.Sin(t * Mathf.PI);
+            metalGo.transform.position = pos;
+
+            // 비행 중 회전 연출
+            metalGo.transform.Rotate(Vector3.up, 360f * Time.deltaTime, Space.World);
+
+            yield return null;
+        }
+
+        // sellPos 도달 → 정착 및 판매 큐에 추가
+        if (metalGo != null)
+            DepositNpcMetal(metalGo);
+    }
+
+    // 비행 완료한 Metal을 sellPos에 쌓고 판매 카운트 추가
+    private void DepositNpcMetal(GameObject metalVisual)
+    {
+        if (metalVisual == null || sellPos == null) return;
+
+        // flyingMetalPool에서 사용 중 표시 해제(이미 active이므로 zoneMetals로만 이관)
+        metalVisual.transform.SetParent(sellPos, false);
+        metalVisual.transform.localRotation = Quaternion.identity;
+
+        Vector3 lp = metalLocalOffset;
+        lp.x = 0f;
+        lp.z = 0f;
+        lp.y = metalLocalOffset.y + metalSpacingY * zoneMetals.Count;
+        metalVisual.transform.localPosition = lp;
+
+        ItemPickup pickup = metalVisual.GetComponent<ItemPickup>();
+        if (pickup != null) pickup.SetPickupEnabled(false);
+
+        zoneMetals.Add(metalVisual);
+
+        if (!isProcessing)
+            StartCoroutine(ProcessCycle());
+    }
+
+    private GameObject GetOrCreateFlyingMetal()
+    {
+        for (int i = 0; i < flyingMetalPool.Count; i++)
+        {
+            if (flyingMetalPool[i] != null && !flyingMetalPool[i].activeSelf)
+                return flyingMetalPool[i];
+        }
+
+        GameObject go = Instantiate(metalPrefab);
+        go.name = $"FlyingMetal_{flyingMetalPool.Count}";
+        go.SetActive(false);
+
+        ItemPickup pickup = go.GetComponent<ItemPickup>();
+        if (pickup != null) pickup.SetPickupEnabled(false);
+
+        flyingMetalPool.Add(go);
+        return go;
+    }
+
+    // ── 플레이어 판매 ─────────────────────────────────────────
+
     // MetalExchangeSellTrigger에서 호출
     public void RequestStartSelling(PlayerAgent player)
     {
-        if (player == null || isProcessing) return;
+        if (player == null) return;
 
         ItemStackInventory inventory = player.GetComponentInChildren<ItemStackInventory>();
         if (inventory == null || inventory.MetalCount <= 0) return;
 
-        // 1) 플레이어 Metal 비주얼 전부 sellPos로 이전 (인벤토리에서 분리)
+        // 플레이어 Metal 비주얼 전부 sellPos로 이전 (인벤토리에서 분리)
         List<GameObject> metals = inventory.ReleaseActiveMetal();
         if (metals.Count == 0) return;
 
@@ -56,20 +157,22 @@ public class MetalExchangeZone : MonoBehaviour
             m.transform.SetParent(sellPos, false);
             zoneMetals.Add(m);
 
-            // sellPos에 올라온 Metal은 플레이어가 다시 줍지 못하도록
             ItemPickup pickup = m.GetComponent<ItemPickup>();
             if (pickup != null) pickup.SetPickupEnabled(false);
         }
 
         RebuildMetalTransforms();
 
-        // 2) 스텝마다 Metal 1개 비활성화 + Handcuffs 1개 생산
-        StartCoroutine(ProcessCycle());
+        if (!isProcessing)
+            StartCoroutine(ProcessCycle());
+
         Debug.Log($"[MetalExchangeZone] Metal {metals.Count}개 sellPos 이전 완료, 처리 시작");
     }
 
     // 기존 호출 호환성 유지 (no-op)
     public void RequestStopSelling(PlayerAgent player) { }
+
+    // ── Handcuffs 수집 ────────────────────────────────────────
 
     // MetalExchangeHandcuffsCollectTrigger에서 호출
     public void CollectAllProducedHandcuffs(PlayerAgent player)
@@ -87,16 +190,14 @@ public class MetalExchangeZone : MonoBehaviour
 
         holdStack.AddRange(producedHandcuffs);
 
-        // 플레이어에게 이전됐으니 풀에서도 제거
         foreach (GameObject hc in producedHandcuffs)
-        {
             handcuffsPool.Remove(hc);
-        }
 
         producedHandcuffs.Clear();
     }
 
-    // processInterval마다 Metal 1개 비활성화 + Handcuffs 1개 생산 (HandcuffsMoneyExchangeZone 동일 구조)
+    // ── 처리 사이클 ───────────────────────────────────────────
+
     private IEnumerator ProcessCycle()
     {
         isProcessing = true;
@@ -105,29 +206,24 @@ public class MetalExchangeZone : MonoBehaviour
         {
             yield return new WaitForSeconds(Mathf.Max(0.01f, processInterval));
 
-            // Metal 뒤에서부터 1개 비활성화
             int last = zoneMetals.Count - 1;
             if (zoneMetals[last] != null)
                 zoneMetals[last].SetActive(false);
             zoneMetals.RemoveAt(last);
 
-            // Handcuffs 1개 생산
             SpawnOneHandcuff();
 
-            Debug.Log($"[MetalExchangeZone] Metal → Handcuffs 변환 (남은 Metal: {zoneMetals.Count})");
+            Debug.Log($"[MetalExchangeZone] Metal → Handcuffs 변환 (남은: {zoneMetals.Count})");
         }
 
         isProcessing = false;
-        Debug.Log("[MetalExchangeZone] 전체 처리 완료");
     }
 
     private void SpawnOneHandcuff()
     {
         if (handcuffsPrefab == null) return;
 
-        // 현재 쌓인 수 기준으로 y=0부터 슬롯 결정
         int slot = producedHandcuffs.Count;
-
         GameObject instance = GetOrCreateHandcuff();
         instance.SetActive(true);
 
@@ -141,7 +237,6 @@ public class MetalExchangeZone : MonoBehaviour
         producedHandcuffs.Add(instance);
     }
 
-    // 비활성 Handcuffs 재사용, 없으면 새로 생성
     private GameObject GetOrCreateHandcuff()
     {
         for (int i = 0; i < handcuffsPool.Count; i++)

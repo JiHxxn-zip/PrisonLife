@@ -15,10 +15,32 @@ public class ItemPickup : MonoBehaviour
 
     // false면 플레이어와의 트리거 상호작용을 무시 (Zone 이전 시 사용)
     private bool pickupEnabled = true;
+    // NPC 예약 상태 (예약 중이면 다른 NPC가 접근 불가, 플레이어는 여전히 가능)
+    private bool reservedByNpc;
+    private NpcCollectorAgent reservingAgent;
+
+    public ItemType ItemType => itemType;
+    public bool IsPickupEnabled => pickupEnabled;
+    public bool IsReservedByNpc => reservedByNpc;
 
     public void SetPickupEnabled(bool enabled)
     {
         pickupEnabled = enabled;
+    }
+
+    // NPC가 이 Metal을 예약. 이미 다른 NPC가 예약 중이면 false
+    public bool TryReserveForNpc(NpcCollectorAgent agent)
+    {
+        if (reservedByNpc && reservingAgent != agent) return false;
+        reservedByNpc = true;
+        reservingAgent = agent;
+        return true;
+    }
+
+    public void ReleaseNpcReservation()
+    {
+        reservedByNpc = false;
+        reservingAgent = null;
     }
 
     private void Awake()
@@ -38,6 +60,13 @@ public class ItemPickup : MonoBehaviour
         if (player == null)
         {
             return;
+        }
+
+        // 플레이어가 NPC 예약 Metal을 가져가는 경우 NPC에게 알림
+        if (reservedByNpc && reservingAgent != null)
+        {
+            reservingAgent.OnTargetPickedUpByPlayer();
+            ReleaseNpcReservation();
         }
 
         bool added = player.CollectItem(itemType, count);
@@ -62,6 +91,23 @@ public class ItemPickup : MonoBehaviour
             {
                 gameObject.SetActive(false);
             }
+        }
+    }
+
+    // NPC가 직접 수집할 때 호출 — 플레이어 인벤토리에 추가하지 않고 풀링 규칙만 따름
+    public void CollectByNpc()
+    {
+        ReleaseNpcReservation();
+        SetPickupEnabled(true); // 다음 스폰 시 다시 줍기 가능하도록 복원
+
+        if (respawnHost != null)
+        {
+            gameObject.SetActive(false);
+            respawnHost.StartCoroutine(RespawnAfterDelay());
+        }
+        else
+        {
+            gameObject.SetActive(false);
         }
     }
 
