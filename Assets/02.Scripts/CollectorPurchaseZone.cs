@@ -1,10 +1,9 @@
 using UnityEngine;
 
-// 플레이어가 결제하면 NpcCollectorAgent를 스폰하고,
-// 완료 즉시 DeliveryPurchaseZone을 활성화한 뒤 자신은 비활성화
+// 누적 결제로 NpcCollectorAgent를 스폰하는 Zone
+// 결제 완료 즉시 DeliveryPurchaseZone을 활성화하고 자신은 비활성화
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Collider))]
-public class CollectorPurchaseZone : MonoBehaviour
+public class CollectorPurchaseZone : AccumulatedPaymentZone
 {
     [Header("Purchase")]
     [SerializeField] private int hireCost = 50;
@@ -19,37 +18,21 @@ public class CollectorPurchaseZone : MonoBehaviour
     [Header("2단계 해금 — 결제 완료 직후 활성화")]
     [SerializeField] private DeliveryPurchaseZone deliveryPurchaseZone;
 
-    private void Awake()
-    {
-        GetComponent<Collider>().isTrigger = true;
+    protected override int CurrentTarget => hireCost;
 
-        // DeliveryPurchaseZone은 처음엔 반드시 비활성
+    protected override void OnAwake()
+    {
         if (deliveryPurchaseZone != null)
             deliveryPurchaseZone.gameObject.SetActive(false);
     }
 
-    private void OnTriggerEnter(Collider other)
+    protected override void OnPaymentComplete(PlayerAgent player, ItemStackInventory inventory)
     {
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
-        if (player == null) return;
-
-        ItemStackInventory inventory = player.GetComponentInChildren<ItemStackInventory>();
-        if (inventory == null) return;
-
-        if (inventory.MoneyTotalValue < hireCost)
-        {
-            Debug.Log($"[CollectorPurchaseZone] 잔액 부족 ({inventory.MoneyTotalValue}/{hireCost}원)");
-            return;
-        }
-
-        if (!inventory.TryConsumeMoneyValue(hireCost)) return;
-
         for (int i = 0; i < spawnCount; i++)
             SpawnCollector(i);
 
         Debug.Log($"[CollectorPurchaseZone] NpcCollectorAgent {spawnCount}명 스폰 완료");
 
-        // 2단계 Zone 해금
         if (deliveryPurchaseZone != null)
         {
             deliveryPurchaseZone.gameObject.SetActive(true);
@@ -67,8 +50,8 @@ public class CollectorPurchaseZone : MonoBehaviour
             return;
         }
 
-        Vector3 pos      = transform.position;
-        Quaternion rot   = transform.rotation;
+        Vector3 pos    = transform.position;
+        Quaternion rot = transform.rotation;
 
         if (spawnPoints != null && index < spawnPoints.Length && spawnPoints[index] != null)
         {

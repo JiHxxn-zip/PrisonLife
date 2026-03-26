@@ -1,9 +1,8 @@
 using UnityEngine;
 
-// 플레이어가 결제하면 씬에 미리 배치된 NpcDeliveryAgent를 활성화하고 자신은 비활성화
+// 누적 결제로 씬에 미리 배치된 NpcDeliveryAgent를 활성화하는 Zone
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Collider))]
-public class DeliveryPurchaseZone : MonoBehaviour
+public class DeliveryPurchaseZone : AccumulatedPaymentZone
 {
     [Header("Purchase")]
     [SerializeField] private int hireCost = 50;
@@ -12,28 +11,17 @@ public class DeliveryPurchaseZone : MonoBehaviour
     [Tooltip("Hierarchy에 미리 배치된 비활성 NpcDeliveryAgent 오브젝트를 연결")]
     [SerializeField] private NpcDeliveryAgent deliveryAgent;
 
-    private void Awake()
+    protected override int CurrentTarget => hireCost;
+
+    protected override void OnAwake()
     {
-        GetComponent<Collider>().isTrigger = true;
-        deliveryAgent.gameObject.SetActive(false);
+        // NpcDeliveryAgent는 결제 완료 전까지 반드시 비활성
+        if (deliveryAgent != null)
+            deliveryAgent.gameObject.SetActive(false);
     }
 
-    private void OnTriggerEnter(Collider other)
+    protected override void OnPaymentComplete(PlayerAgent player, ItemStackInventory inventory)
     {
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
-        if (player == null) return;
-
-        ItemStackInventory inventory = player.GetComponentInChildren<ItemStackInventory>();
-        if (inventory == null) return;
-
-        if (inventory.MoneyTotalValue < hireCost)
-        {
-            Debug.Log($"[DeliveryPurchaseZone] 잔액 부족 ({inventory.MoneyTotalValue}/{hireCost}원)");
-            return;
-        }
-
-        if (!inventory.TryConsumeMoneyValue(hireCost)) return;
-
         if (deliveryAgent != null)
         {
             deliveryAgent.gameObject.SetActive(true);
