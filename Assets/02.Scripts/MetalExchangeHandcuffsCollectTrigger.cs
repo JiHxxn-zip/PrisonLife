@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // ExchangeZone의 Handcuffs 수집(이동) 트리거용 핸들러
@@ -5,6 +6,8 @@ using UnityEngine;
 public class MetalExchangeHandcuffsCollectTrigger : MonoBehaviour
 {
     [SerializeField] private MetalExchangeZone exchangeZone;
+
+    public event Action<PlayerAgent> OnPlayerEntered;
 
     private void Awake()
     {
@@ -25,6 +28,7 @@ public class MetalExchangeHandcuffsCollectTrigger : MonoBehaviour
             return;
         }
 
+        OnPlayerEntered?.Invoke(player);
         exchangeZone.CollectAllProducedHandcuffs(player);
     }
 }

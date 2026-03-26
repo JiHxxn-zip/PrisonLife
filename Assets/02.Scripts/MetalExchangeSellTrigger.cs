@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // ExchangeZone의 SellTrigger용 핸들러
@@ -5,6 +6,8 @@ using UnityEngine;
 public class MetalExchangeSellTrigger : MonoBehaviour
 {
     [SerializeField] private MetalExchangeZone exchangeZone;
+
+    public event Action<PlayerAgent> OnPlayerEntered;
 
     private void Awake()
     {
@@ -25,6 +28,7 @@ public class MetalExchangeSellTrigger : MonoBehaviour
             return;
         }
 
+        OnPlayerEntered?.Invoke(player);
         exchangeZone.RequestStartSelling(player);
     }
 

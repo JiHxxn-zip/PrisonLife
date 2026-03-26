@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // 플레이어가 진입하면 보유 중인 Handcuffs 전체를 HandcuffsMoneyExchangeZone에 전달
@@ -7,6 +8,8 @@ using UnityEngine;
 public class HandcuffZone : MonoBehaviour
 {
     private HandcuffsMoneyExchangeZone exchangeZone;
+
+    public event Action<PlayerAgent> OnPlayerEntered;
 
     private void Awake()
     {
@@ -26,6 +29,7 @@ public class HandcuffZone : MonoBehaviour
         PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
         if (player == null) return;
 
+        OnPlayerEntered?.Invoke(player);
         exchangeZone.ReceiveHandcuffsFromPlayer(player);
     }
 }

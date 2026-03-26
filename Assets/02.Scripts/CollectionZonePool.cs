@@ -124,9 +124,17 @@ public class CollectionZonePool : MonoBehaviour
     private static Vector3 CalculatePrefabSize(GameObject prefab)
     {
         GameObject temp = Instantiate(prefab);
-        temp.transform.position = Vector3.zero;
+        // 플레이어 트리거와 겹치지 않도록 씬 밖 위치로 이동
+        temp.transform.position = new Vector3(0f, -9999f, 0f);
         temp.transform.rotation = Quaternion.identity;
         temp.transform.localScale = Vector3.one;
+
+        // pickupEnabled = true(기본값) 상태로 활성화되면 Physics Update에서
+        // OnTriggerEnter가 발화할 수 있으므로 측정 전에 줍기를 차단
+        ItemPickup pickup = temp.GetComponent<ItemPickup>();
+        if (pickup != null)
+            pickup.SetPickupEnabled(false);
+
         temp.SetActive(true);
 
         Renderer[] renderers = temp.GetComponentsInChildren<Renderer>(true);
@@ -141,7 +149,9 @@ public class CollectionZonePool : MonoBehaviour
             size = bounds.size;
         }
 
-        Destroy(temp);
+        // DestroyImmediate로 즉시 제거 — Destroy(deferred)를 쓰면
+        // 같은 프레임 Physics Update에서 트리거가 살아있어 버그가 재현됨
+        DestroyImmediate(temp);
 
         size.x = Mathf.Max(0.05f, size.x);
         size.y = Mathf.Max(0.05f, size.y);

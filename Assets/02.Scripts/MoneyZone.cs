@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -14,6 +15,8 @@ public class MoneyZone : MonoBehaviour
     private HandcuffsMoneyExchangeZone exchangeZone;
     private bool isCollecting;
 
+    public event Action<PlayerAgent> OnPlayerEntered;
+
     private void Awake()
     {
         GetComponent<Collider>().isTrigger = true;
@@ -27,12 +30,14 @@ public class MoneyZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
+        if (player == null) return;
+
+        OnPlayerEntered?.Invoke(player);
+
         if (isCollecting) return;
         if (exchangeZone == null) return;
         if (exchangeZone.ActiveMoneyCount <= 0) return;
-
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
-        if (player == null) return;
 
         StartCoroutine(CollectRoutine(player));
     }
