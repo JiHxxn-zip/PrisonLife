@@ -115,4 +115,10 @@ public class PlayerAgent : MonoBehaviour
     {
         playerLevel = Mathf.Max(1, playerLevel + Mathf.Max(0, amount));
     }
+
+    // 튜토리얼 카메라 연출 등 외부에서 직접 이동 제한/해제
+    public void SetMovementLocked(bool locked)
+    {
+        movementController.SetMovementLocked(locked);
+    }
 }

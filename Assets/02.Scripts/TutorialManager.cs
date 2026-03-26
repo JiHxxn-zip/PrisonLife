@@ -34,6 +34,11 @@ public class TutorialManager : MonoBehaviour
     [Header("완료 시 활성화")]
     [SerializeField] private LevelUpZone levelUpZone;
 
+    [Header("카메라 연출")]
+    [SerializeField] private QuarterViewCameraRig cameraRig;
+    [SerializeField] private float cinematicMoveDuration = 1.5f;
+    [SerializeField] private float cinematicHoldDuration = 1.5f;
+
     [Header("3D 월드 화살표")]
     [Tooltip("3D 화살표 프리팹 — 처음 사용 시 자동 Instantiate")]
     [SerializeField] private GameObject arrow3DPrefab;
@@ -189,11 +194,41 @@ public class TutorialManager : MonoBehaviour
             case Step.Complete:
                 Set3DArrow(false, null);
                 Set2DArrow(false, null);
-                if (levelUpZone != null)
-                    levelUpZone.gameObject.SetActive(true);
-                Debug.Log("[Tutorial] 완료 — LevelUpZone 활성화");
+                StartCoroutine(CompleteCinematic());
                 break;
         }
+    }
+
+    // ── 완료 시네마틱 ─────────────────────────────────────────
+
+    private System.Collections.IEnumerator CompleteCinematic()
+    {
+        // 플레이어 조작 잠금
+        if (playerAgent != null)
+            playerAgent.SetMovementLocked(true);
+
+        // 카메라를 LevelUpZone으로 이동 (cinematicMoveDuration 초)
+        if (cameraRig != null && levelUpZone != null)
+            yield return cameraRig.StartCinematicLerp(levelUpZone.transform, cinematicMoveDuration);
+
+        // 도착 시 LevelUpZone 활성화
+        if (levelUpZone != null)
+            levelUpZone.gameObject.SetActive(true);
+
+        Debug.Log("[Tutorial] 완료 — LevelUpZone 활성화");
+
+        // cinematicHoldDuration 초 대기
+        yield return new WaitForSeconds(cinematicHoldDuration);
+
+        // 카메라를 플레이어에게 복귀 (cinematicMoveDuration 초)
+        if (cameraRig != null && playerAgent != null)
+            yield return cameraRig.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
+
+        // 플레이어 조작 해제
+        if (playerAgent != null)
+            playerAgent.SetMovementLocked(false);
+
+        Debug.Log("[Tutorial] 카메라 복귀 완료 — 조작 해제");
     }
 
     // ── 이벤트 핸들러 ────────────────────────────────────────

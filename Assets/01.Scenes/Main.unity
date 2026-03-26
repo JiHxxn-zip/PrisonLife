@@ -1244,6 +1244,9 @@ MonoBehaviour:
   handcuffZone: {fileID: 1736680932}
   moneyZone: {fileID: 1037428811}
   levelUpZone: {fileID: 1846996662}
+  cameraRig: {fileID: 330585547}
+  cinematicMoveDuration: 1.5
+  cinematicHoldDuration: 1.5
   arrow3DPrefab: {fileID: 4790787788254809071, guid: d72c7a8c3166cec43b400dd3e4143797,
     type: 3}
   arrowOffsetY: 2
@@ -1341,7 +1344,7 @@ Transform:
   m_GameObject: {fileID: 938286497}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -7.65, y: 0, z: 0}
+  m_LocalPosition: {x: -4.46, y: 0, z: -8.58}
   m_LocalScale: {x: 1, y: 0.16, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2541,7 +2544,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1812134915}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 6.3, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2549,7 +2552,7 @@ Transform:
   - {fileID: 1732747867}
   - {fileID: 938286498}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &1812134917
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2611,14 +2614,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1846996660}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 6.3, y: 0.12, z: 2}
   m_LocalScale: {x: 1, y: 0.13, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 144810065}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &1846996662
 MonoBehaviour:
   m_ObjectHideFlags: 0
