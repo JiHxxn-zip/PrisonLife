@@ -2,21 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 플레이어 진입 시:
-//  1) 보유 Handcuffs 전체를 Zone의 handcuffAnchor로 이동
-//  2) 한 턴마다 2 또는 4개(랜덤) Handcuffs 비활성화 + 동수 Money 프리팹 순차 생성
-//  3) Money 는 항상 y=0 슬롯부터 쌓임 (현재 활성 Money 수를 기준으로 위치 계산)
-[RequireComponent(typeof(Collider))]
+// Handcuffs → Money 변환 엔진
+// Inspector에서 HandcuffZone / MoneyZone을 연결하면
+// Awake에서 자동으로 각 Zone에 자신을 주입하고 앵커를 Zone 위치로 설정
+[DisallowMultipleComponent]
 public class HandcuffsMoneyExchangeZone : MonoBehaviour
 {
-    [Header("Handcuff Anchor (Zone 내 수갑 표시 위치)")]
-    [SerializeField] private Transform handcuffAnchor;
+    [Header("연결 Zone (앵커는 각 Zone의 위치를 자동 사용)")]
+    [SerializeField] private HandcuffZone handcuffZone;
+    [SerializeField] private MoneyZone moneyZone;
+
+    [Header("Handcuff 적층 오프셋")]
     [SerializeField] private Vector3 handcuffLocalOffset = Vector3.zero;
     [SerializeField] private float handcuffSpacingY = 0.15f;
 
     [Header("Money Spawn")]
     [SerializeField] private GameObject moneyPrefab;
-    [SerializeField] private Transform moneyAnchor;
     [SerializeField] private Vector3 moneyLocalOffset = Vector3.zero;
     [SerializeField] private float moneySpacingY = 0.12f;
 
@@ -28,29 +29,53 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
     [Tooltip("Handcuffs 비활성화 + Money 생성 간격 (초)")]
     [SerializeField] private float spawnInterval = 1f;
 
-    [Header("Money Value (UI 연동용)")]
-    [SerializeField] private int moneyValuePerItem = 10;
+    // 앵커는 각 Zone의 transform으로 자동 설정
+    private Transform handcuffAnchor;
+    private Transform moneyAnchor;
 
-    // Zone 앵커에 이동된 수갑 비주얼
     private readonly List<GameObject> zoneHandcuffs = new List<GameObject>();
-    // 생성된 Money 프리팹 풀 (활성/비활성 포함)
     private readonly List<GameObject> moneyPool = new List<GameObject>();
 
     private bool isProcessing;
 
+    // ── 공개 프로퍼티 ─────────────────────────────────────────
+
+    public Transform HandcuffAnchorTransform => handcuffAnchor;
+    public int ZoneHandcuffsCount => zoneHandcuffs.Count;
+    public int ActiveMoneyCount => CountActiveMoney();
+
+    // ── 초기화 ────────────────────────────────────────────────
+
     private void Awake()
     {
-        GetComponent<Collider>().isTrigger = true;
+        // 앵커를 각 Zone의 위치로 자동 설정
+        if (handcuffZone != null)
+        {
+            handcuffAnchor = handcuffZone.transform;
+            handcuffZone.Initialize(this);
+        }
+        else
+        {
+            Debug.LogWarning("[HandcuffsMoneyExchangeZone] HandcuffZone 미연결");
+            handcuffAnchor = transform;
+        }
 
-        if (handcuffAnchor == null) handcuffAnchor = transform;
-        if (moneyAnchor == null) moneyAnchor = transform;
+        if (moneyZone != null)
+        {
+            moneyAnchor = moneyZone.transform;
+            moneyZone.Initialize(this);
+        }
+        else
+        {
+            Debug.LogWarning("[HandcuffsMoneyExchangeZone] MoneyZone 미연결");
+            moneyAnchor = transform;
+        }
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (isProcessing) return;
+    // ── 플레이어 입력 (HandcuffZone → 호출) ──────────────────
 
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
+    public void ReceiveHandcuffsFromPlayer(PlayerAgent player)
+    {
         if (player == null) return;
 
         HandcuffsHoldStack holdStack = player.GetHandcuffsHoldStack();
@@ -62,7 +87,6 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
             return;
         }
 
-        // 보유 수갑 전체를 Zone 앵커로 이동
         List<GameObject> released = holdStack.ReleaseAll();
         foreach (GameObject hc in released)
         {
@@ -70,18 +94,66 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
             hc.transform.SetParent(handcuffAnchor, false);
             zoneHandcuffs.Add(hc);
 
-            // handcuffAnchor에 쌓인 Handcuffs는 플레이어가 다시 줍지 못하도록
             ItemPickup pickup = hc.GetComponent<ItemPickup>();
             if (pickup != null) pickup.SetPickupEnabled(false);
         }
 
         RebuildHandcuffTransforms();
-        StartCoroutine(ProcessTurns());
 
-        Debug.Log($"[HandcuffsMoneyExchangeZone] Handcuffs {released.Count}개 Zone으로 이동, 처리 시작");
+        if (!isProcessing)
+            StartCoroutine(ProcessTurns());
+
+        Debug.Log($"[HandcuffsMoneyExchangeZone] 플레이어 Handcuffs {released.Count}개 수령, 처리 시작");
     }
 
-    // 한 턴마다 2 또는 4개씩 수갑 비활성화 + Money 순차 생성
+    // ── NPC 입력 (NpcDeliveryAgent → 호출) ───────────────────
+
+    public void ReceiveHandcuffsFromNpc(List<GameObject> handcuffs)
+    {
+        if (handcuffs == null || handcuffs.Count == 0) return;
+
+        if (moneyPrefab == null)
+        {
+            Debug.LogWarning("[HandcuffsMoneyExchangeZone] moneyPrefab 미설정 — NPC 전달 수락 불가");
+            return;
+        }
+
+        foreach (GameObject hc in handcuffs)
+        {
+            if (hc == null) continue;
+            hc.transform.SetParent(handcuffAnchor, false);
+            zoneHandcuffs.Add(hc);
+
+            ItemPickup pickup = hc.GetComponent<ItemPickup>();
+            if (pickup != null) pickup.SetPickupEnabled(false);
+        }
+
+        RebuildHandcuffTransforms();
+
+        if (!isProcessing)
+            StartCoroutine(ProcessTurns());
+
+        Debug.Log($"[HandcuffsMoneyExchangeZone] NPC로부터 Handcuffs {handcuffs.Count}개 수령, 처리 시작");
+    }
+
+    // ── Money 수거 (MoneyZone → 호출) ────────────────────────
+
+    // 위에서부터(LIFO) 활성 Money 1개 비활성화. 성공하면 true 반환
+    public bool TakeTopMoney()
+    {
+        for (int i = moneyPool.Count - 1; i >= 0; i--)
+        {
+            if (moneyPool[i] != null && moneyPool[i].activeSelf)
+            {
+                moneyPool[i].SetActive(false);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ── 처리 사이클 ───────────────────────────────────────────
+
     private IEnumerator ProcessTurns()
     {
         isProcessing = true;
@@ -95,16 +167,14 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
             {
                 yield return new WaitForSeconds(Mathf.Max(0f, spawnInterval));
 
-                // 마지막 수갑 비활성화
                 int lastIdx = zoneHandcuffs.Count - 1;
                 GameObject hc = zoneHandcuffs[lastIdx];
                 zoneHandcuffs.RemoveAt(lastIdx);
                 if (hc != null) hc.SetActive(false);
 
-                // Money 1개 생성 (항상 현재 활성 Money 수 기준 y 슬롯)
                 SpawnOneMoney();
 
-                Debug.Log($"[HandcuffsMoneyExchangeZone] Handcuffs 비활성화, Money +1 생성 (남은 수갑: {zoneHandcuffs.Count})");
+                Debug.Log($"[HandcuffsMoneyExchangeZone] Handcuffs → Money 변환 (남은 수갑: {zoneHandcuffs.Count})");
             }
         }
 
@@ -112,9 +182,10 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
         Debug.Log("[HandcuffsMoneyExchangeZone] 전체 처리 완료");
     }
 
+    // ── 내부 유틸 ─────────────────────────────────────────────
+
     private void SpawnOneMoney()
     {
-        // 현재 활성 Money 수를 기준으로 Y 슬롯 결정 → 항상 y=0부터 쌓임
         int activeSlot = CountActiveMoney();
 
         GameObject instance = GetOrCreateMoney();
@@ -129,12 +200,9 @@ public class HandcuffsMoneyExchangeZone : MonoBehaviour
 
         ItemPickup pickup = instance.GetComponent<ItemPickup>();
         if (pickup != null)
-        {
             pickup.Configure(ItemType.Money, 1, false);
-        }
     }
 
-    // 비활성화된 Money가 있으면 재사용, 없으면 새로 생성
     private GameObject GetOrCreateMoney()
     {
         for (int i = 0; i < moneyPool.Count; i++)

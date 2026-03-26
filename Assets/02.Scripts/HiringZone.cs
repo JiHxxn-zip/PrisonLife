@@ -1,71 +1,43 @@
 using UnityEngine;
 
-// 플레이어가 50원을 1회 결제하면 NPC 3명을 즉시 일괄 스폰하고 Zone 비활성화
-[RequireComponent(typeof(Collider))]
+// 플레이어 레벨을 감지해 단계별 구매 Zone을 순차 해금하는 오케스트레이터
+// 자체 Collider 불필요 — 트리거 역할은 각 PurchaseZone이 담당
+[DisallowMultipleComponent]
 public class HiringZone : MonoBehaviour
 {
-    [Header("Hire Settings")]
-    [SerializeField] private int hireCost = 50;
-    [SerializeField] private int spawnCount = 3;
+    [Header("Player")]
+    [Tooltip("미지정 시 Start()에서 FindObjectOfType으로 자동 탐색")]
+    [SerializeField] private PlayerAgent playerAgent;
 
-    [Header("NPC")]
-    [SerializeField] private GameObject npcPrefab;
-    [SerializeField] private MetalExchangeZone targetExchangeZone;
+    [Header("1단계 — Collector 구매 Zone (레벨 도달 시 활성화)")]
+    [SerializeField] private CollectorPurchaseZone collectorPurchaseZone;
+    [SerializeField] private int collectorUnlockLevel = 2;
 
-    [Header("Spawn Points (선택 — 미지정 시 Zone 위치 사용)")]
-    [SerializeField] private Transform[] spawnPoints;
+    private bool collectorUnlocked;
 
-    private void Awake()
+    private void Start()
     {
-        GetComponent<Collider>().isTrigger = true;
+        if (playerAgent == null)
+            playerAgent = FindObjectOfType<PlayerAgent>();
+
+        // 두 Zone 모두 처음엔 비활성 상태여야 함
+        if (collectorPurchaseZone != null)
+            collectorPurchaseZone.gameObject.SetActive(false);
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void Update()
     {
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
-        if (player == null) return;
+        if (collectorUnlocked) return;
+        if (playerAgent == null) return;
 
-        ItemStackInventory inventory = player.GetComponentInChildren<ItemStackInventory>();
-        if (inventory == null) return;
-
-        if (inventory.MoneyTotalValue < hireCost)
+        if (playerAgent.Level >= collectorUnlockLevel)
         {
-            Debug.Log($"[HiringZone] 잔액 부족 ({inventory.MoneyTotalValue}/{hireCost}원)");
-            return;
+            collectorUnlocked = true;
+
+            if (collectorPurchaseZone != null)
+                collectorPurchaseZone.gameObject.SetActive(true);
+
+            Debug.Log($"[HiringZone] 레벨 {collectorUnlockLevel} 달성 → CollectorPurchaseZone 활성화");
         }
-
-        if (!inventory.TryConsumeMoneyValue(hireCost)) return;
-
-        for (int i = 0; i < spawnCount; i++)
-            SpawnNpc(i);
-
-        Debug.Log($"[HiringZone] NPC {spawnCount}명 일괄 스폰 완료 → Zone 비활성화");
-        gameObject.SetActive(false);
-    }
-
-    private void SpawnNpc(int index)
-    {
-        if (npcPrefab == null)
-        {
-            Debug.LogWarning("[HiringZone] npcPrefab 미설정");
-            return;
-        }
-
-        Vector3 spawnPos = transform.position;
-        Quaternion spawnRot = transform.rotation;
-
-        if (spawnPoints != null && index < spawnPoints.Length && spawnPoints[index] != null)
-        {
-            spawnPos = spawnPoints[index].position;
-            spawnRot = spawnPoints[index].rotation;
-        }
-
-        GameObject npcObj = Instantiate(npcPrefab, spawnPos, spawnRot);
-        NpcCollectorAgent agent = npcObj.GetComponent<NpcCollectorAgent>();
-
-        if (agent != null)
-            agent.Initialize(targetExchangeZone);
-        else
-            Debug.LogWarning("[HiringZone] NPC 프리팹에 NpcCollectorAgent 컴포넌트가 없습니다.");
     }
 }

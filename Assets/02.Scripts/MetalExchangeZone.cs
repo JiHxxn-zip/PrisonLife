@@ -172,7 +172,25 @@ public class MetalExchangeZone : MonoBehaviour
     // 기존 호출 호환성 유지 (no-op)
     public void RequestStopSelling(PlayerAgent player) { }
 
-    // ── Handcuffs 수집 ────────────────────────────────────────
+    // ── NPC 전용 수거 API ─────────────────────────────────────
+
+    public Transform HandcuffsAnchor => handcuffsAnchor;
+    public int ProducedHandcuffsCount => producedHandcuffs.Count;
+
+    // NpcDeliveryAgent가 호출 — producedHandcuffs를 NPC에게 넘기고 Zone 목록에서 제거
+    public List<GameObject> CollectHandcuffsForNpc()
+    {
+        if (producedHandcuffs.Count == 0)
+            return new List<GameObject>();
+
+        List<GameObject> collected = new List<GameObject>(producedHandcuffs);
+        foreach (GameObject hc in collected)
+            handcuffsPool.Remove(hc);
+        producedHandcuffs.Clear();
+        return collected;
+    }
+
+    // ── 플레이어 Handcuffs 수집 ───────────────────────────────
 
     // MetalExchangeHandcuffsCollectTrigger에서 호출
     public void CollectAllProducedHandcuffs(PlayerAgent player)
