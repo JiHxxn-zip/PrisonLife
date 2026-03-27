@@ -18,6 +18,7 @@ public class HyperCasualPlayerController : MonoBehaviour
     private Vector2 dragStartPosition;
     private bool isDragging;
     private Vector3 currentMoveDirection;
+    private Vector3 lastMoveDirection;
     private bool isMovementLocked;
 
     public bool HasMovementInput => currentMoveDirection.sqrMagnitude > (moveDetectionThreshold * moveDetectionThreshold);
@@ -119,6 +120,11 @@ public class HyperCasualPlayerController : MonoBehaviour
             currentMoveDirection.Normalize();
         }
 
+        if (currentMoveDirection.sqrMagnitude > (moveDetectionThreshold * moveDetectionThreshold))
+        {
+            lastMoveDirection = currentMoveDirection;
+        }
+
         transform.position += currentMoveDirection * (moveSpeed * Time.deltaTime);
     }
 
@@ -131,6 +137,10 @@ public class HyperCasualPlayerController : MonoBehaviour
         if (isMoving)
         {
             lookDirection = currentMoveDirection;
+        }
+        else if (lastMoveDirection.sqrMagnitude > 0.0001f)
+        {
+            lookDirection = lastMoveDirection;
         }
         else if (idleLookTarget != null)
         {

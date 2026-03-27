@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // 감옥이 가득 찼을 때 PrisonZone이 활성화하는 결제 존.
@@ -18,15 +19,45 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
     [Tooltip("결제 완료 시 활성화할 GameObject (새 맵)")]
     [SerializeField] private GameObject mapObjectToEnable;
 
+    [Header("카메라 연출")]
+    [SerializeField] private QuarterViewCameraRig cameraRig;
+    [Tooltip("새 맵 감상 시 카메라가 바라볼 기준 위치")]
+    [SerializeField] private Transform mapViewTarget;
+    [SerializeField] private float cameraTravelDuration = 1.5f;
+    [SerializeField] private float mapShowDuration = 1f;
+
     protected override int CurrentTarget => expandCost;
 
     protected override void OnPaymentComplete(PlayerAgent player, ItemStackInventory inventory)
     {
         prisonZone?.ExpandCapacity(capacityIncrease);
-        prisonZone?.DeactivateExpansionZone();
+        StartCoroutine(MapTransitionCinematic(player));
+    }
 
+    private IEnumerator MapTransitionCinematic(PlayerAgent player)
+    {
+        // 플레이어 이동 잠금
+        HyperCasualPlayerController controller = player.GetComponent<HyperCasualPlayerController>();
+        controller?.SetMovementLocked(true);
+
+        // 카메라 → 새 맵으로 이동
+        if (cameraRig != null && mapViewTarget != null)
+            yield return cameraRig.StartCinematicLerp(mapViewTarget, cameraTravelDuration);
+
+        // 맵 전환
         if (mapObjectToDisable != null) mapObjectToDisable.SetActive(false);
         if (mapObjectToEnable  != null) mapObjectToEnable.SetActive(true);
+
+        // 새 맵 감상
+        yield return new WaitForSeconds(mapShowDuration);
+
+        // 카메라 → 플레이어로 복귀
+        if (cameraRig != null)
+            yield return cameraRig.StartCinematicLerp(player.transform, cameraTravelDuration);
+
+        // 플레이어 이동 해제 & 존 비활성화
+        controller?.SetMovementLocked(false);
+        prisonZone?.DeactivateExpansionZone();
 
         Debug.Log($"[PrisonExpansionZone] 결제 완료 — 수용량 +{capacityIncrease}, 맵 전환");
     }

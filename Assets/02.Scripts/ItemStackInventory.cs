@@ -29,14 +29,17 @@ public class ItemStackInventory : MonoBehaviour
     [SerializeField] private List<ItemPrefabEntry> itemPrefabs = new List<ItemPrefabEntry>();
 
     [Header("UI")]
-    [Tooltip("Metal이 최대치에 도달하면 MAX 표시를 2초간 띄운다.")]
+    [Tooltip("Metal이 최대치에 도달하면 MAX 표시를 띄운다.")]
     [SerializeField] private TMP_Text maxTextWorld;
 
-    [SerializeField] private float maxTextDisplaySeconds = 2f;
+    [SerializeField] private float maxTextFadeDuration = 0.5f;
+    [SerializeField] private float maxTextMoveDistance = 0.3f;
     [SerializeField] private float maxTextCooldownSeconds = 2f;
+    [SerializeField] private float maxTextCooldownWhenColliding = 1f;
 
     [Header("Values (UI 연동용)")]
     [SerializeField] private int moneyValuePerItem = 10;
+    [SerializeField] private TMP_Text moneyValueUI;
 
     private readonly Dictionary<ItemType, GameObject> prefabByType = new Dictionary<ItemType, GameObject>();
     private readonly List<GameObject> metalVisuals = new List<GameObject>();
@@ -48,6 +51,8 @@ public class ItemStackInventory : MonoBehaviour
 
     private float nextMaxTriggerTime;
     private Coroutine maxTextCoroutine;
+    private Coroutine moneyUICoroutine;
+    private int moneyUIDisplayedValue;
 
     // LevelUpZone 등 외부에서 Metal Max를 조정할 때 사용
     private int metalMaxBonus;
@@ -88,6 +93,7 @@ public class ItemStackInventory : MonoBehaviour
         }
 
         RebuildAllTransforms();
+        RefreshMoneyUI();
         return consumed >= itemsNeeded;
     }
 
@@ -173,7 +179,7 @@ public class ItemStackInventory : MonoBehaviour
             if (MetalCount >= maxMetalCount)
             {
                 Debug.Log($"[ItemStack] Metal MAX — 더 이상 획득 불가 ({MetalCount}/{maxMetalCount})");
-                TriggerMaxTextIfAllowed();
+                TriggerMaxTextIfAllowed(maxTextCooldownWhenColliding);
                 return false;
             }
 
@@ -191,7 +197,7 @@ public class ItemStackInventory : MonoBehaviour
             // 방금 획득한 Metal로 최대치가 됐을 때 MAX 표시를 띄운다.
             if (MetalCount >= maxMetalCount)
             {
-                TriggerMaxTextIfAllowed();
+                TriggerMaxTextIfAllowed(maxTextCooldownSeconds);
             }
 
             Debug.Log($"[ItemStack] 획득 +1 Metal ({MetalCount}/{maxMetalCount})");
@@ -210,6 +216,7 @@ public class ItemStackInventory : MonoBehaviour
             instance.SetActive(true);
 
             RebuildAllTransforms();
+            RefreshMoneyUI();
             Debug.Log($"[ItemStack] 획득 +1 Money ({MoneyCount} 보유)");
             return true;
         }
@@ -278,6 +285,40 @@ public class ItemStackInventory : MonoBehaviour
         return false;
     }
 
+    private void RefreshMoneyUI()
+    {
+        if (moneyValueUI == null) return;
+
+        int targetValue = MoneyTotalValue;
+
+        if (moneyUICoroutine != null)
+        {
+            StopCoroutine(moneyUICoroutine);
+        }
+
+        moneyUICoroutine = StartCoroutine(AnimateMoneyUI(moneyUIDisplayedValue, targetValue));
+    }
+
+    private IEnumerator AnimateMoneyUI(int from, int to)
+    {
+        float duration = Mathf.Clamp(Mathf.Abs(to - from) * 0.015f, 0.15f, 0.6f);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            int displayed = Mathf.RoundToInt(Mathf.Lerp(from, to, t));
+            moneyUIDisplayedValue = displayed;
+            moneyValueUI.text = displayed.ToString();
+            yield return null;
+        }
+
+        moneyUIDisplayedValue = to;
+        moneyValueUI.text = to.ToString();
+        moneyUICoroutine = null;
+    }
+
     // 등 뒤 시각 오브젝트 전부 제거
     public void ClearAll()
     {
@@ -306,6 +347,14 @@ public class ItemStackInventory : MonoBehaviour
 
         if (maxTextWorld != null) maxTextWorld.gameObject.SetActive(false);
         nextMaxTriggerTime = 0f;
+
+        if (moneyUICoroutine != null)
+        {
+            StopCoroutine(moneyUICoroutine);
+            moneyUICoroutine = null;
+        }
+        moneyUIDisplayedValue = 0;
+        if (moneyValueUI != null) moneyValueUI.text = "0";
     }
 
     // Metal은 항상 backAnchors[0] 기준으로 slot 0부터 쌓임
@@ -420,14 +469,14 @@ public class ItemStackInventory : MonoBehaviour
         return Mathf.Max(0, Mathf.RoundToInt((baseMax + metalMaxBonus) * metalMaxMultiplier));
     }
 
-    private void TriggerMaxTextIfAllowed()
+    private void TriggerMaxTextIfAllowed(float cooldown)
     {
         if (maxTextWorld == null)
         {
             return;
         }
 
-        // 숨김 후 쿨타임 동안 재트리거하면 무시
+        // 쿨타임 중이면 무시
         if (Time.time < nextMaxTriggerTime)
         {
             return;
@@ -440,20 +489,42 @@ public class ItemStackInventory : MonoBehaviour
         }
 
         maxTextWorld.text = "MAX";
+        maxTextWorld.alpha = 0f;
         maxTextWorld.gameObject.SetActive(true);
-        maxTextCoroutine = StartCoroutine(HideMaxTextAfterSeconds(maxTextDisplaySeconds));
+        maxTextCoroutine = StartCoroutine(MaxTextAnimation(cooldown));
     }
 
-    private IEnumerator HideMaxTextAfterSeconds(float seconds)
+    private IEnumerator MaxTextAnimation(float cooldown)
     {
-        yield return new WaitForSeconds(Mathf.Max(0f, seconds));
+        float fadeDuration = Mathf.Max(0.01f, maxTextFadeDuration);
+        Vector3 originLocalPos = maxTextWorld.transform.localPosition;
 
-        if (maxTextWorld != null)
+        // Phase 1: 페이드 인 (0.5초)
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
         {
-            maxTextWorld.gameObject.SetActive(false);
+            elapsed += Time.deltaTime;
+            maxTextWorld.alpha = Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+        maxTextWorld.alpha = 1f;
+
+        // Phase 2: 위로 올라가며 페이드 아웃 (0.5초)
+        elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / fadeDuration);
+            maxTextWorld.alpha = 1f - t;
+            maxTextWorld.transform.localPosition = originLocalPos + Vector3.up * (maxTextMoveDistance * t);
+            yield return null;
         }
 
-        nextMaxTriggerTime = Time.time + Mathf.Max(0f, maxTextCooldownSeconds);
+        maxTextWorld.alpha = 0f;
+        maxTextWorld.transform.localPosition = originLocalPos;
+        maxTextWorld.gameObject.SetActive(false);
+
+        nextMaxTriggerTime = Time.time + Mathf.Max(0f, cooldown);
         maxTextCoroutine = null;
     }
 }
