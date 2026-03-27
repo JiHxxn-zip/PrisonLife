@@ -20,6 +20,7 @@ public class NpcCollectorAgent : MonoBehaviour
     [Header("Collect")]
     [SerializeField] private float collectDuration = 1f;
     [SerializeField] private float searchRetryInterval = 1f;
+    [SerializeField] private AudioClip collectSfx;
 
     // ── 런타임 ────────────────────────────────────────────────
     private MetalExchangeZone exchangeZone;
@@ -101,6 +102,9 @@ public class NpcCollectorAgent : MonoBehaviour
             SetState(NpcState.SearchingMetal);
             return;
         }
+
+        if (collectTimer == 0f)
+            SoundManager.Instance?.PlaySound(collectSfx, 0.3f);
 
         collectTimer += Time.deltaTime;
         if (collectTimer >= collectDuration)

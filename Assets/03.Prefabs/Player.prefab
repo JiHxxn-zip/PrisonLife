@@ -297,9 +297,13 @@ MonoBehaviour:
     prefab: {fileID: 3913780994475955751, guid: 54885c7f5bccae243b77082b61a37b88,
       type: 3}
   maxTextWorld: {fileID: 4813481039810284768}
-  maxTextDisplaySeconds: 2
+  maxTextFadeDuration: 0.5
+  maxTextMoveDistance: 0.3
   maxTextCooldownSeconds: 2
+  maxTextCooldownWhenColliding: 1
+  metalSfx: {fileID: 8300000, guid: f42653c576786cd45a090c396775d257, type: 3}
   moneyValuePerItem: 10
+  moneyValueUI: {fileID: 0}
 --- !u!54 &2489307131369416134
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -125,4 +125,4 @@ MonoBehaviour:
   arrivalThreshold: 0.5
   collectDuration: 1
   searchRetryInterval: 1
-  carryAnchor: {fileID: 0}
+  collectSfx: {fileID: 8300000, guid: f42653c576786cd45a090c396775d257, type: 3}

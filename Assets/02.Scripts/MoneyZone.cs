@@ -12,12 +12,14 @@ public class MoneyZone : MonoBehaviour
     [Header("플레이어 수거 설정")]
     [Tooltip("Money 1개 수거 간격 (초)")]
     [SerializeField] private float collectInterval = 0.05f;
+    [SerializeField] private AudioClip collectSfx;
 
     [Header("Money 스택 배치")]
     [SerializeField] private Vector3 moneyLocalOffset = Vector3.zero;
     [SerializeField] private float   moneySpacingY    = 0.12f;
 
     [Header("Arc Flight (죄수 결제 연출)")]
+    [SerializeField] private AudioClip moneythrowSfx;
     [SerializeField] private GameObject moneyPrefab;
     [Tooltip("포물선 최고점 높이")]
     [SerializeField] private float arcHeight         = 2.5f;
@@ -32,6 +34,7 @@ public class MoneyZone : MonoBehaviour
     private readonly List<GameObject> moneyPool = new List<GameObject>();
 
     private bool isCollecting;
+    private float nextCollectSfxTime;
 
     public event Action<PlayerAgent> OnPlayerEntered;
 
@@ -54,6 +57,7 @@ public class MoneyZone : MonoBehaviour
     // count 만큼 worldPos에서 포물선으로 날아와 스택에 쌓임
     public void LaunchMoneyBatch(Vector3 worldPos, int count)
     {
+        SoundManager.Instance?.PlaySound(moneythrowSfx, 0.2f);
         for (int i = 0; i < count; i++)
             StartCoroutine(LaunchWithDelay(worldPos, i * launchStagger));
     }
@@ -144,6 +148,12 @@ public class MoneyZone : MonoBehaviour
         {
             TakeTopMoney();
             player.CollectItem(ItemType.Money);
+
+            if (collectSfx != null && Time.time >= nextCollectSfxTime)
+            {
+                SoundManager.Instance?.PlaySound(collectSfx, 0.2f);
+                nextCollectSfxTime = Time.time + collectSfx.length;
+            }
 
             yield return new WaitForSeconds(Mathf.Max(0f, collectInterval));
         }

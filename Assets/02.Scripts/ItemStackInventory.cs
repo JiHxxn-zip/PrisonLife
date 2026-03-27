@@ -37,6 +37,9 @@ public class ItemStackInventory : MonoBehaviour
     [SerializeField] private float maxTextCooldownSeconds = 2f;
     [SerializeField] private float maxTextCooldownWhenColliding = 1f;
 
+    [Header("SFX")]
+    [SerializeField] private AudioClip metalSfx;
+
     [Header("Values (UI 연동용)")]
     [SerializeField] private int moneyValuePerItem = 10;
     [SerializeField] private TMP_Text moneyValueUI;
@@ -193,6 +196,8 @@ public class ItemStackInventory : MonoBehaviour
             instance.SetActive(true);
 
             RebuildAllTransforms();
+
+            SoundManager.Instance?.PlaySound(metalSfx, 0.4f);
 
             // 방금 획득한 Metal로 최대치가 됐을 때 MAX 표시를 띄운다.
             if (MetalCount >= maxMetalCount)
