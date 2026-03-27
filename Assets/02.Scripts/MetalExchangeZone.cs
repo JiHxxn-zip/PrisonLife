@@ -38,6 +38,16 @@ public class MetalExchangeZone : MonoBehaviour
     [Tooltip("sellPos까지 비행 시간 (초)")]
     [SerializeField] private float arcFlightDuration = 0.6f;
 
+    [Header("Working Indicator")]
+    [Tooltip("작업 중일 때 표시할 월드 UI 이미지 오브젝트")]
+    [SerializeField] private GameObject workingIndicator;
+    [Tooltip("두둥실 상하 진폭 (유닛)")]
+    [SerializeField] private float bobAmplitude = 0.15f;
+    [Tooltip("상하 왕복 속도")]
+    [SerializeField] private float bobSpeed = 2f;
+    [Tooltip("Z축 회전 속도 (도/초)")]
+    [SerializeField] private float spinSpeed = 90f;
+
     // sellPos에 이동된 Metal 비주얼 (플레이어 판매 / NPC 납품 공통)
     private readonly List<GameObject> zoneMetals = new List<GameObject>();
     // Handcuffs 오브젝트 풀
@@ -48,6 +58,8 @@ public class MetalExchangeZone : MonoBehaviour
     private readonly List<GameObject> flyingMetalPool = new List<GameObject>();
 
     private bool isProcessing;
+    private Vector3 indicatorBaseLocalPos;
+    private Coroutine indicatorCoroutine;
 
     public Transform SellPos => sellPos;
 
@@ -58,6 +70,12 @@ public class MetalExchangeZone : MonoBehaviour
 
         SetMaxTextActive(metalMaxText, false);
         SetMaxTextActive(handcuffsMaxText, false);
+
+        if (workingIndicator != null)
+        {
+            indicatorBaseLocalPos = workingIndicator.transform.localPosition;
+            workingIndicator.SetActive(false);
+        }
     }
 
     // ── NPC 전용 ──────────────────────────────────────────────
@@ -247,6 +265,7 @@ public class MetalExchangeZone : MonoBehaviour
     private IEnumerator ProcessCycle()
     {
         isProcessing = true;
+        SetWorkingIndicator(true);
 
         while (zoneMetals.Count > 0)
         {
@@ -266,6 +285,47 @@ public class MetalExchangeZone : MonoBehaviour
         }
 
         isProcessing = false;
+        SetWorkingIndicator(false);
+    }
+
+    private void SetWorkingIndicator(bool active)
+    {
+        if (workingIndicator == null) return;
+
+        if (active)
+        {
+            workingIndicator.SetActive(true);
+            if (indicatorCoroutine != null) StopCoroutine(indicatorCoroutine);
+            indicatorCoroutine = StartCoroutine(AnimateIndicator());
+        }
+        else
+        {
+            if (indicatorCoroutine != null)
+            {
+                StopCoroutine(indicatorCoroutine);
+                indicatorCoroutine = null;
+            }
+            workingIndicator.SetActive(false);
+        }
+    }
+
+    private IEnumerator AnimateIndicator()
+    {
+        float time = 0f;
+        while (true)
+        {
+            time += Time.deltaTime;
+
+            // 상하 두둥실
+            Vector3 lp = indicatorBaseLocalPos;
+            lp.y += Mathf.Sin(time * bobSpeed) * bobAmplitude;
+            workingIndicator.transform.localPosition = lp;
+
+            // Z축 회전
+            workingIndicator.transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime, Space.Self);
+
+            yield return null;
+        }
     }
 
     private void SpawnOneHandcuff()
@@ -332,5 +392,8 @@ public class MetalExchangeZone : MonoBehaviour
     {
         StopAllCoroutines();
         isProcessing = false;
+        indicatorCoroutine = null;
+        if (workingIndicator != null)
+            workingIndicator.SetActive(false);
     }
 }

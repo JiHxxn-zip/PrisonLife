@@ -97,7 +97,7 @@ public class PrisonZone : MonoBehaviour
 
         npc.transform.SetParent(anchor, true);
         npc.transform.localPosition = localPos;
-        npc.transform.localRotation = Quaternion.identity;
+        npc.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
 
         RefreshUI();
         Debug.Log($"[PrisonZone] 수감 {prisoners.Count}/{maxCapacity}");

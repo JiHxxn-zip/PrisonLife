@@ -35,6 +35,10 @@ public class NpcDeliveryAgent : MonoBehaviour
     [Tooltip("MetalExchangeZone에 수갑이 없을 때 재시도 간격 (초)")]
     [SerializeField] private float collectRetryInterval = 0.5f;
 
+    [Header("Wait Point")]
+    [Tooltip("대기 장소 도착 시 바라볼 Y축 각도")]
+    [SerializeField] private float waitFacingAngleY = 90f;
+
     // ── 런타임 ────────────────────────────────────────────────
 
     private readonly List<GameObject> heldHandcuffs = new List<GameObject>();
@@ -171,6 +175,7 @@ public class NpcDeliveryAgent : MonoBehaviour
             return;
         }
 
+        transform.rotation = Quaternion.Euler(0f, waitFacingAngleY, 0f);
         SetState(NpcDeliveryState.WaitingForProcessing);
     }
 

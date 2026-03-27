@@ -150,6 +150,7 @@ public class NpcCollectorAgent : MonoBehaviour
             if (pickup.ItemType != ItemType.Metal) continue;
             if (!pickup.IsPickupEnabled) continue;   // sellPos·비행 중인 Metal 제외
             if (pickup.IsReservedByNpc) continue;    // 다른 NPC 예약 Metal 제외
+            if (pickup.GetComponentInParent<PlayerAgent>() != null) continue; // 플레이어가 들고있는 Metal 제외
 
             float sqr = SqrDist2D(transform.position, pickup.transform.position);
             if (sqr < nearestSqr)
