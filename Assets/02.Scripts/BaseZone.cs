@@ -20,6 +20,8 @@ public abstract class BaseZone : MonoBehaviour
     // 플레이어 감지 시 존에 등록하고 상호작용 시작
     private void OnTriggerEnter(Collider other)
     {
+        if (other.GetComponent<MetalCollectorTrigger>() != null) return;
+
         PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
         if (player == null || playersInZone.Contains(player))
         {
@@ -34,6 +36,8 @@ public abstract class BaseZone : MonoBehaviour
     // 플레이어가 나가면 등록 해제 및 상호작용 종료
     private void OnTriggerExit(Collider other)
     {
+        if (other.GetComponent<MetalCollectorTrigger>() != null) return;
+
         PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
         if (player == null || !playersInZone.Remove(player))
         {

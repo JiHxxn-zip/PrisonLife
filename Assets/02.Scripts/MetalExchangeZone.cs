@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 // 플레이어: Metal 비주얼 전체를 sellPos로 이전 → processInterval마다 Metal 1개 비활성화 + Handcuffs 1개 생산
@@ -9,13 +10,21 @@ public class MetalExchangeZone : MonoBehaviour
     [Header("Metal Sell Position")]
     [SerializeField] private Transform sellPos;
     [SerializeField] private Vector3 metalLocalOffset = Vector3.zero;
-    [SerializeField] private float metalSpacingY = 0.18f;
+    [SerializeField] private float metalSpacingY = 0.5f;
 
     [Header("Handcuffs Production")]
     [SerializeField] private GameObject handcuffsPrefab;
     [SerializeField] private Transform handcuffsAnchor;
     [SerializeField] private Vector3 handcuffsLocalOffset = Vector3.zero;
-    [SerializeField] private float handcuffsSpacingY = 0.15f;
+    [SerializeField] private float handcuffsSpacingY = 0.5f;
+
+    [Header("Stack Limit (레벨3 플레이어 최대 소지량 기준)")]
+    [SerializeField] private int maxMetalStack = 14;
+    [SerializeField] private int maxHandcuffsStack = 14;
+
+    [Header("Max UI (World Space)")]
+    [SerializeField] private TMP_Text metalMaxText;
+    [SerializeField] private TMP_Text handcuffsMaxText;
 
     [Header("Timing")]
     [Tooltip("Metal 1개 비활성화 + Handcuffs 1개 생산 간격 (초)")]
@@ -46,6 +55,9 @@ public class MetalExchangeZone : MonoBehaviour
     {
         if (sellPos == null) sellPos = transform;
         if (handcuffsAnchor == null) handcuffsAnchor = transform;
+
+        SetMaxTextActive(metalMaxText, false);
+        SetMaxTextActive(handcuffsMaxText, false);
     }
 
     // ── NPC 전용 ──────────────────────────────────────────────
@@ -99,7 +111,13 @@ public class MetalExchangeZone : MonoBehaviour
     {
         if (metalVisual == null || sellPos == null) return;
 
-        // flyingMetalPool에서 사용 중 표시 해제(이미 active이므로 zoneMetals로만 이관)
+        if (zoneMetals.Count >= maxMetalStack)
+        {
+            metalVisual.SetActive(false);
+            SetMaxTextActive(metalMaxText, true);
+            return;
+        }
+
         metalVisual.transform.SetParent(sellPos, false);
         metalVisual.transform.localRotation = Quaternion.identity;
 
@@ -154,6 +172,14 @@ public class MetalExchangeZone : MonoBehaviour
         foreach (GameObject m in metals)
         {
             if (m == null) continue;
+
+            if (zoneMetals.Count >= maxMetalStack)
+            {
+                m.SetActive(false);
+                SetMaxTextActive(metalMaxText, true);
+                continue;
+            }
+
             m.transform.SetParent(sellPos, false);
             zoneMetals.Add(m);
 
@@ -187,6 +213,7 @@ public class MetalExchangeZone : MonoBehaviour
         foreach (GameObject hc in collected)
             handcuffsPool.Remove(hc);
         producedHandcuffs.Clear();
+        SetMaxTextActive(handcuffsMaxText, false);
         return collected;
     }
 
@@ -212,6 +239,7 @@ public class MetalExchangeZone : MonoBehaviour
             handcuffsPool.Remove(hc);
 
         producedHandcuffs.Clear();
+        SetMaxTextActive(handcuffsMaxText, false);
     }
 
     // ── 처리 사이클 ───────────────────────────────────────────
@@ -229,6 +257,9 @@ public class MetalExchangeZone : MonoBehaviour
                 zoneMetals[last].SetActive(false);
             zoneMetals.RemoveAt(last);
 
+            if (zoneMetals.Count < maxMetalStack)
+                SetMaxTextActive(metalMaxText, false);
+
             SpawnOneHandcuff();
 
             Debug.Log($"[MetalExchangeZone] Metal → Handcuffs 변환 (남은: {zoneMetals.Count})");
@@ -240,6 +271,12 @@ public class MetalExchangeZone : MonoBehaviour
     private void SpawnOneHandcuff()
     {
         if (handcuffsPrefab == null) return;
+
+        if (producedHandcuffs.Count >= maxHandcuffsStack)
+        {
+            SetMaxTextActive(handcuffsMaxText, true);
+            return;
+        }
 
         int slot = producedHandcuffs.Count;
         GameObject instance = GetOrCreateHandcuff();
@@ -284,6 +321,11 @@ public class MetalExchangeZone : MonoBehaviour
             zoneMetals[i].transform.localPosition = lp;
             zoneMetals[i].transform.localRotation = Quaternion.identity;
         }
+    }
+
+    private void SetMaxTextActive(TMP_Text text, bool active)
+    {
+        if (text != null) text.gameObject.SetActive(active);
     }
 
     private void OnDisable()

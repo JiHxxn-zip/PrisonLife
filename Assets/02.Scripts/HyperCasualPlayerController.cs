@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 // 드래그 이동·쿼터뷰 기준 회전·존에서의 이동 잠금
 public class HyperCasualPlayerController : MonoBehaviour
@@ -13,6 +14,11 @@ public class HyperCasualPlayerController : MonoBehaviour
     [SerializeField] private Transform idleLookTarget;
     [SerializeField] private Vector3 idleLookDirection = Vector3.forward;
     [SerializeField] private float moveDetectionThreshold = 0.02f;
+
+    [Header("Joystick UI")]
+    [SerializeField] private RectTransform joystickBg;
+    [SerializeField] private RectTransform joystickStick;
+    [SerializeField] private Canvas joystickCanvas;
 
     private Vector2 dragDelta;
     private Vector2 dragStartPosition;
@@ -40,14 +46,17 @@ public class HyperCasualPlayerController : MonoBehaviour
                 idleLookDirection = cameraForwardOnPlane;
             }
         }
+
+        SetJoystickVisible(false);
     }
 
-    // 드래그 입력 → 이동 → 회전 순 처리
+    // 드래그 입력 → 이동 → 회전 → 조이스틱 UI 순 처리
     private void Update()
     {
         ReadDragInput();
         UpdateMovement();
         UpdateRotation();
+        UpdateJoystickUI();
     }
 
     // 터치 1개 또는 마우스로 드래그 델타 갱신
@@ -62,6 +71,8 @@ public class HyperCasualPlayerController : MonoBehaviour
                     isDragging = true;
                     dragStartPosition = touch.position;
                     dragDelta = Vector2.zero;
+                    PlaceJoystickBg(dragStartPosition);
+                    SetJoystickVisible(true);
                     break;
                 case TouchPhase.Moved:
                 case TouchPhase.Stationary:
@@ -73,6 +84,7 @@ public class HyperCasualPlayerController : MonoBehaviour
                 default:
                     isDragging = false;
                     dragDelta = Vector2.zero;
+                    SetJoystickVisible(false);
                     break;
             }
             return;
@@ -83,6 +95,8 @@ public class HyperCasualPlayerController : MonoBehaviour
             isDragging = true;
             dragStartPosition = Input.mousePosition;
             dragDelta = Vector2.zero;
+            PlaceJoystickBg(dragStartPosition);
+            SetJoystickVisible(true);
         }
         else if (Input.GetMouseButton(0) && isDragging)
         {
@@ -92,6 +106,7 @@ public class HyperCasualPlayerController : MonoBehaviour
         {
             isDragging = false;
             dragDelta = Vector2.zero;
+            SetJoystickVisible(false);
         }
     }
 
@@ -181,5 +196,37 @@ public class HyperCasualPlayerController : MonoBehaviour
     public void SetMoveSpeed(float newMoveSpeed)
     {
         moveSpeed = Mathf.Max(0f, newMoveSpeed);
+    }
+
+    // ── 조이스틱 UI ───────────────────────────────────────────
+
+    private void PlaceJoystickBg(Vector2 screenPos)
+    {
+        if (joystickBg == null || joystickCanvas == null) return;
+
+        Camera uiCamera = joystickCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : joystickCanvas.worldCamera;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            joystickCanvas.GetComponent<RectTransform>(),
+            screenPos,
+            uiCamera,
+            out Vector2 localPoint);
+
+        joystickBg.anchoredPosition = localPoint;
+    }
+
+    private void UpdateJoystickUI()
+    {
+        if (joystickStick == null || joystickBg == null) return;
+        if (!isDragging) return;
+
+        float bgRadius = joystickBg.sizeDelta.x * 0.5f;
+        Vector2 clamped = Vector2.ClampMagnitude(dragDelta / Mathf.Max(1f, dragMaxPixels), 1f) * bgRadius;
+        joystickStick.anchoredPosition = clamped;
+    }
+
+    private void SetJoystickVisible(bool visible)
+    {
+        if (joystickBg != null) joystickBg.gameObject.SetActive(visible);
+        if (!visible && joystickStick != null) joystickStick.anchoredPosition = Vector2.zero;
     }
 }

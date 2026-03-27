@@ -114,6 +114,7 @@ public class PlayerAgent : MonoBehaviour
     public void AddLevel(int amount)
     {
         playerLevel = Mathf.Max(1, playerLevel + Mathf.Max(0, amount));
+        GetComponentInChildren<PlayerMetalCollector>()?.OnLevelUp();
     }
 
     // 튜토리얼 카메라 연출 등 외부에서 직접 이동 제한/해제

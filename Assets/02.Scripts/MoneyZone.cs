@@ -130,6 +130,8 @@ public class MoneyZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (other.GetComponent<MetalCollectorTrigger>() != null) return;
+
         PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
         if (player == null) return;
 

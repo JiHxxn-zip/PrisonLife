@@ -16,7 +16,6 @@ public class LevelUpZone : AccumulatedPaymentZone
 
     [Header("Common")]
     [SerializeField] private int levelIncreasePerStage = 1;
-    [SerializeField] private float capsuleRadiusIncreasePerStage = 1f;
 
     private int currentStage = 1;
 
@@ -40,10 +39,6 @@ public class LevelUpZone : AccumulatedPaymentZone
     private void ApplyStageEffects(PlayerAgent player, ItemStackInventory inventory)
     {
         player.AddLevel(levelIncreasePerStage);
-
-        CapsuleCollider capsule = player.GetComponent<CapsuleCollider>();
-        if (capsule != null)
-            capsule.radius += capsuleRadiusIncreasePerStage;
 
         if (currentStage == 1)
         {

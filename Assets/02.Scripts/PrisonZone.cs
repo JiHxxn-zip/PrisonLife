@@ -42,6 +42,7 @@ public class PrisonZone : MonoBehaviour
 
     private readonly List<PrisonerNpc> prisoners = new List<PrisonerNpc>();
     private int reservedSlots; // 이동 중(미도착) 죄수 예약 수
+    private bool expansionAvailable = true;
 
     // ── 공개 프로퍼티 ─────────────────────────────────────────
 
@@ -117,7 +118,7 @@ public class PrisonZone : MonoBehaviour
 
     private void ActivateExpansionZone()
     {
-        if (expansionZoneObject == null) return;
+        if (expansionZoneObject == null || !expansionAvailable) return;
 
         if (cameraRig != null && player != null)
             StartCoroutine(ExpansionCinematicRoutine());
@@ -155,7 +156,8 @@ public class PrisonZone : MonoBehaviour
     {
         if (expansionZoneObject == null) return;
         expansionZoneObject.SetActive(false);
-        Debug.Log("[PrisonZone] 확장 결제 Zone 비활성화");
+        expansionAvailable = false;
+        Debug.Log("[PrisonZone] 확장 결제 Zone 비활성화 — 이후 만원 시 입장 차단만 적용");
     }
 
     // ── UI ────────────────────────────────────────────────────
