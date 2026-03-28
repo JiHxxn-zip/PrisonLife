@@ -334,11 +334,15 @@ public class TutorialManager : MonoBehaviour
 
     public void BeginChapter2()
     {
+        UIManager.Instance?.ShowNextChapter();
         BeginStep(Step.Ch2_GoToGate);
     }
 
     private System.Collections.IEnumerator Chapter2GateCinematic()
     {
+        // ArrowPivot 비활성화
+        Set2DArrow(false, null);
+
         // Player1 잠금 (팝업에서 이미 잠겼지만 명시적으로 보장)
         LockPlayer1(true);
 
@@ -405,6 +409,9 @@ public class TutorialManager : MonoBehaviour
 
     private System.Collections.IEnumerator Chapter2MonsterCinematic()
     {
+        // ArrowPivot 비활성화
+        Set2DArrow(false, null);
+
         // Player2 잠금
         LockPlayer2(true);
 
@@ -414,6 +421,13 @@ public class TutorialManager : MonoBehaviour
 
         // 몬스터 위에 3D 화살표 표시
         Set3DArrow(true, ch2MonsterTarget);
+
+        // 카메라 도착 시 MonsterZone 활성화
+        if (ch2MonsterZone != null)
+        {
+            ch2MonsterZone.OnAllMonstersDefeated += OnCh2AllMonstersDefeated;
+            ch2MonsterZone.Activate();
+        }
 
         // 감상 대기
         yield return new WaitForSeconds(cinematicHoldDuration);
@@ -425,15 +439,8 @@ public class TutorialManager : MonoBehaviour
         // Player2 잠금 해제
         LockPlayer2(false);
 
-        // 2D 화살표도 몬스터 방향으로 활성화
+        // 2D 화살표 몬스터 방향으로 활성화
         Set2DArrow(true, ch2MonsterTarget);
-
-        // MonsterZone 활성화 + 전멸 이벤트 구독
-        if (ch2MonsterZone != null)
-        {
-            ch2MonsterZone.OnAllMonstersDefeated += OnCh2AllMonstersDefeated;
-            ch2MonsterZone.Activate();
-        }
     }
 
     private System.Collections.IEnumerator Chapter2BaseCinematic()

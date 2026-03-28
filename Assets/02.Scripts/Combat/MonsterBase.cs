@@ -11,9 +11,13 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     [SerializeField] protected int   maxHp     = 100;
     [SerializeField] protected float moveSpeed = 3f;
 
+    [Header("드롭")]
+    [SerializeField] private GameObject moneyDropPrefab;
+
     protected int       currentHp;
     protected Transform playerTransform;
     protected bool      isChasing;
+    private   bool      _isDead;
 
     // ── 초기화 ────────────────────────────────────────
 
@@ -26,6 +30,7 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     {
         currentHp = maxHp;
         isChasing = false;
+        _isDead   = false;
     }
 
     // ── 매 프레임 추적 ────────────────────────────────
@@ -47,10 +52,14 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
 
     public virtual void TakeDamage(int damage)
     {
+        if (_isDead) return;
         currentHp -= damage;
 
         if (currentHp <= 0)
+        {
+            _isDead = true;
             OnDeath();
+        }
         else
             OnHit();
     }
@@ -69,6 +78,8 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     protected virtual void OnDeath()
     {
         OnDied?.Invoke();
+        if (moneyDropPrefab != null)
+            Instantiate(moneyDropPrefab, transform.position, Quaternion.identity);
         gameObject.SetActive(false);
     }
 
