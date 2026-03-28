@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // 무기 프리팹에 부착.
@@ -7,6 +8,8 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class WeaponPickup : MonoBehaviour
 {
+    public event Action OnPickedUp;
+
     private WeaponBase _weapon;
     private Collider   _collider;
 
@@ -21,15 +24,25 @@ public class WeaponPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // WeaponAnchorSystem이 있으면 슬롯 장착 시도
         WeaponAnchorSystem anchors = other.GetComponentInParent<WeaponAnchorSystem>();
-        if (anchors == null) return;
+        if (anchors != null)
+        {
+            bool equipped = anchors.TryEquip(_weapon);
+            if (!equipped) return; // 슬롯 가득 — 습득 불가
+        }
+        else
+        {
+            // WeaponAnchorSystem이 없는 플레이어(Player2 등)는
+            // PlayerArrowAgent 여부로 플레이어 판별
+            if (other.GetComponentInParent<PlayerArrowAgent>() == null) return;
+        }
 
-        bool equipped = anchors.TryEquip(_weapon);
-        if (!equipped) return; // 슬롯 가득 — 아무것도 하지 않음
-
-        // 장착 성공 : 픽업 트리거 제거, 무기 활성화
-        _weapon.enabled = true;
+        // 픽업 성공
+        _weapon.enabled   = true;
         _collider.enabled = false;
-        enabled = false;
+        enabled           = false;
+
+        OnPickedUp?.Invoke();
     }
 }

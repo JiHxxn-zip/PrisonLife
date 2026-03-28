@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class ChapterClearPopup : MonoBehaviour
 {
+    public event Action OnShown;
     public event Action OnHidden;
     [Header("Logo")]
     [SerializeField] private RectTransform logoRect;
@@ -58,6 +59,7 @@ public class ChapterClearPopup : MonoBehaviour
     public void Show()
     {
         gameObject.SetActive(true);
+        OnShown?.Invoke();
     }
 
     public void Hide()

@@ -80,8 +80,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ad40dfaac17ff64dbddac1caaa2e0d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackCooldown: 1
-  damage: 10
+  attackCooldown: 1.5
+  damage: 15
   bulletPool: {fileID: 3030198061080873765}
   muzzle: {fileID: 447453985737812424}
 --- !u!114 &3030198061080873765

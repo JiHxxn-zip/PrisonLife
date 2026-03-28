@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // 몬스터 베이스 클래스. IAttackable 구현.
@@ -5,6 +6,7 @@ using UnityEngine;
 // 서브클래스에서 OnHit / OnDeath / Chase 오버라이드로 다양한 몬스터 유형 확장.
 public abstract class MonsterBase : MonoBehaviour, IAttackable
 {
+    public event Action OnDied;
     [Header("스탯")]
     [SerializeField] protected int   maxHp     = 100;
     [SerializeField] protected float moveSpeed = 3f;
@@ -66,6 +68,7 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
 
     protected virtual void OnDeath()
     {
+        OnDied?.Invoke();
         gameObject.SetActive(false);
     }
 

@@ -11,6 +11,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class TutorialManager : MonoBehaviour
 {
+    public static TutorialManager Instance { get; private set; }
+
     public enum Step
     {
         Step1_CollectMetal,
@@ -22,11 +24,15 @@ public class TutorialManager : MonoBehaviour
 
         // ── Chapter 2 ──────────────────────────
         Ch2_GoToGate,
+        Ch2_GoToWeapon,
+        Ch2_GoToMonster,
+        Ch2_GoToBase,
         Ch2_Complete
     }
 
     [Header("Player")]
     [SerializeField] private PlayerAgent playerAgent;
+    [SerializeField] private Transform playerAgent2;
 
     [Header("Tutorial Targets (순서대로)")]
     [SerializeField] private CollectionZonePool collectionZonePool;                             // Step 1
@@ -43,6 +49,13 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private GateTrigger gateTrigger;
     [Tooltip("챕터 2 시작 시 카메라가 이동할 Gate 위치")]
     [SerializeField] private Transform gateViewTarget;
+    [Tooltip("2D 화살표가 가리킬 무기 위치")]
+    [SerializeField] private WeaponPickup ch2WeaponPickup;
+    [Tooltip("무기 습득 후 2D 화살표가 가리킬 몬스터 위치")]
+    [SerializeField] private Transform ch2MonsterTarget;
+    [SerializeField] private MonsterZone ch2MonsterZone;
+    [Tooltip("몬스터 전멸 후 카메라가 이동할 기지 위치")]
+    [SerializeField] private Transform ch2BaseTarget;
 
     [Header("카메라 연출")]
     [SerializeField] private QuarterViewCameraRig cameraRig;
@@ -60,10 +73,6 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private float bounceSpeed = 2f;
 
     [Header("2D 플레이어 화살표")]
-    [Tooltip("플레이어 자식 — Y축 회전으로 타겟 방향을 가리키는 피벗")]
-    [SerializeField] private Transform arrowPivot;
-    [Tooltip("ArrowPivot 자식 — 피벗 회전에 따라 공전하며 항상 타겟을 바라보는 스프라이트")]
-    [SerializeField] private Transform arrowSprite;
     [Tooltip("Sprite Z축 바운스 진폭")]
     [SerializeField] private float spriteBounceAmplitude = 0.15f;
     [Tooltip("Sprite Z축 바운스 속도")]
@@ -75,21 +84,29 @@ public class TutorialManager : MonoBehaviour
     private static readonly Quaternion SpriteBaseRotation = Quaternion.Euler(90f, 90f, 0f);
 
     private Step currentStep;
-    private GameObject arrow3D;      // Instantiate된 인스턴스
+    private GameObject arrow3D;        // Instantiate된 인스턴스
     private Transform arrow3DTarget;
     private Transform arrow2DTarget;
-    private float spriteBaseLocalZ;  // ArrowSprite 초기 로컬 Z (바운스 기준)
+    private float spriteBaseLocalZ;    // ArrowSprite 초기 로컬 Z (바운스 기준)
+
+    // PlayerArrowAgent가 런타임에 등록
+    private Transform arrowPivot;
+    private Transform arrowSprite;
+
+    // Player2 이동 컨트롤러 (playerAgent2에서 캐시)
+    private HyperCasualPlayerController _player2Controller;
 
     // ── 초기화 ────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void Start()
     {
         if (playerAgent == null)
             playerAgent = FindObjectOfType<PlayerAgent>();
-
-        // ArrowSprite 초기 로컬 Z 저장 (바운스 기준점)
-        if (arrowSprite != null)
-            spriteBaseLocalZ = arrowSprite.localPosition.z;
 
         // LevelUpZone은 튜토리얼 완료 전까지 비활성
         if (levelUpZone != null)
@@ -99,9 +116,16 @@ public class TutorialManager : MonoBehaviour
         if (gateTrigger != null)
             gateTrigger.gameObject.SetActive(false);
 
-        // ChapterClearPopup Hide 이벤트 구독
+        // Player2 컨트롤러 캐시
+        if (playerAgent2 != null)
+            _player2Controller = playerAgent2.GetComponent<HyperCasualPlayerController>();
+
+        // ChapterClearPopup 이벤트 구독
         if (chapterClearPopup != null)
+        {
+            chapterClearPopup.OnShown  += OnChapterClearPopupShown;
             chapterClearPopup.OnHidden += BeginChapter2;
+        }
 
         // 트리거 이벤트 구독
         if (sellTrigger != null)
@@ -127,10 +151,37 @@ public class TutorialManager : MonoBehaviour
         if (moneyZone != null)
             moneyZone.OnPlayerEntered -= OnMoneyZoneTriggered;
         if (chapterClearPopup != null)
+        {
+            chapterClearPopup.OnShown  -= OnChapterClearPopupShown;
             chapterClearPopup.OnHidden -= BeginChapter2;
+        }
         if (gateTrigger != null)
             gateTrigger.OnGatePassed -= OnGatePassed;
+        if (ch2WeaponPickup != null)
+            ch2WeaponPickup.OnPickedUp -= OnCh2WeaponPickedUp;
+        if (ch2MonsterZone != null)
+            ch2MonsterZone.OnAllMonstersDefeated -= OnCh2AllMonstersDefeated;
     }
+
+    // ── 화살표 등록 (PlayerArrowAgent 호출) ───────────────────
+
+    public void RegisterArrow(Transform pivot, Transform sprite)
+    {
+        arrowPivot  = pivot;
+        arrowSprite = sprite;
+        spriteBaseLocalZ = arrowSprite != null ? arrowSprite.localPosition.z : 0f;
+
+        // 현재 2D 화살표가 활성 중이면 새 pivot에 즉시 반영
+        if (arrowPivot != null)
+            arrowPivot.gameObject.SetActive(arrow2DTarget != null);
+    }
+
+    // ── 이동 잠금 헬퍼 ───────────────────────────────────────
+
+    private void LockPlayer1(bool locked) => playerAgent?.SetMovementLocked(locked);
+    private void LockPlayer2(bool locked) => _player2Controller?.SetMovementLocked(locked);
+
+    private void OnChapterClearPopupShown() => LockPlayer1(true);
 
     // ── Update ────────────────────────────────────────────────
 
@@ -155,8 +206,8 @@ public class TutorialManager : MonoBehaviour
         // 2D 화살표 방향 추적
         if (arrowPivot != null && arrowPivot.gameObject.activeSelf && arrow2DTarget != null && playerAgent != null)
         {
-            // ArrowPivot: 플레이어 → 타겟 방향으로 Y축 회전
-            Vector3 toTarget = arrow2DTarget.position - playerAgent.transform.position;
+            // ArrowPivot: 현재 등록된 Pivot 위치 → 타겟 방향으로 Y축 회전
+            Vector3 toTarget = arrow2DTarget.position - arrowPivot.position;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude > 0.01f)
                 arrowPivot.rotation = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
@@ -224,8 +275,24 @@ public class TutorialManager : MonoBehaviour
                 StartCoroutine(Chapter2GateCinematic());
                 break;
 
+            // ── Chapter 2: 무기 안내 ──────────────────────────
+            case Step.Ch2_GoToWeapon:
+                StartCoroutine(Chapter2WeaponCinematic());
+                break;
+
+            // ── Chapter 2: 몬스터 안내 ────────────────────────
+            case Step.Ch2_GoToMonster:
+                StartCoroutine(Chapter2MonsterCinematic());
+                break;
+
+            // ── Chapter 2: 기지 시네마틱 ─────────────────────
+            case Step.Ch2_GoToBase:
+                StartCoroutine(Chapter2BaseCinematic());
+                break;
+
             case Step.Ch2_Complete:
                 Set3DArrow(false, null);
+                Set2DArrow(false, null);
                 Debug.Log("[Tutorial] Chapter2 완료");
                 break;
         }
@@ -272,9 +339,8 @@ public class TutorialManager : MonoBehaviour
 
     private System.Collections.IEnumerator Chapter2GateCinematic()
     {
-        // 플레이어 이동 잠금
-        if (playerAgent != null)
-            playerAgent.SetMovementLocked(true);
+        // Player1 잠금 (팝업에서 이미 잠겼지만 명시적으로 보장)
+        LockPlayer1(true);
 
         // 카메라 → Gate로 이동
         if (cameraRig != null && gateViewTarget != null)
@@ -294,13 +360,39 @@ public class TutorialManager : MonoBehaviour
         // 잠시 감상
         yield return new WaitForSeconds(cinematicHoldDuration);
 
-        // 카메라 → 플레이어 복귀
+        // 카메라 → 플레이어1로 복귀 (아직 포탈 통과 전)
         if (cameraRig != null && playerAgent != null)
             yield return cameraRig.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
 
-        // 플레이어 이동 해제
-        if (playerAgent != null)
-            playerAgent.SetMovementLocked(false);
+        // Player1 잠금 해제 → 포탈로 이동 가능
+        LockPlayer1(false);
+    }
+
+    private System.Collections.IEnumerator Chapter2WeaponCinematic()
+    {
+        Transform weaponTarget = ch2WeaponPickup != null ? ch2WeaponPickup.transform : null;
+
+        // Player2 잠금
+        LockPlayer2(true);
+
+        // 카메라 → 무기로 이동
+        if (cameraRig != null && weaponTarget != null)
+            yield return cameraRig.StartCinematicLerp(weaponTarget, cinematicMoveDuration);
+
+        // 무기 위치 감상
+        yield return new WaitForSeconds(cinematicHoldDuration);
+
+        // 카메라 → 플레이어2로 복귀
+        if (cameraRig != null && playerAgent2 != null)
+            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+
+        // Player2 잠금 해제
+        LockPlayer2(false);
+
+        // 시네마틱 완료 후 2D 화살표 활성화 + 픽업 이벤트 구독
+        Set2DArrow(true, weaponTarget);
+        if (ch2WeaponPickup != null)
+            ch2WeaponPickup.OnPickedUp += OnCh2WeaponPickedUp;
     }
 
     private void OnGatePassed(PlayerAgent player)
@@ -308,7 +400,81 @@ public class TutorialManager : MonoBehaviour
         if (gateTrigger != null)
             gateTrigger.OnGatePassed -= OnGatePassed;
 
+        BeginStep(Step.Ch2_GoToWeapon);
+    }
+
+    private System.Collections.IEnumerator Chapter2MonsterCinematic()
+    {
+        // Player2 잠금
+        LockPlayer2(true);
+
+        // 카메라 → 몬스터로 이동
+        if (cameraRig != null && ch2MonsterTarget != null)
+            yield return cameraRig.StartCinematicLerp(ch2MonsterTarget, cinematicMoveDuration);
+
+        // 몬스터 위에 3D 화살표 표시
+        Set3DArrow(true, ch2MonsterTarget);
+
+        // 감상 대기
+        yield return new WaitForSeconds(cinematicHoldDuration);
+
+        // 카메라 → 플레이어2로 복귀
+        if (cameraRig != null && playerAgent2 != null)
+            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+
+        // Player2 잠금 해제
+        LockPlayer2(false);
+
+        // 2D 화살표도 몬스터 방향으로 활성화
+        Set2DArrow(true, ch2MonsterTarget);
+
+        // MonsterZone 활성화 + 전멸 이벤트 구독
+        if (ch2MonsterZone != null)
+        {
+            ch2MonsterZone.OnAllMonstersDefeated += OnCh2AllMonstersDefeated;
+            ch2MonsterZone.Activate();
+        }
+    }
+
+    private System.Collections.IEnumerator Chapter2BaseCinematic()
+    {
+        // Player2 잠금
+        LockPlayer2(true);
+
+        Set3DArrow(false, null);
+        Set2DArrow(false, null);
+
+        // 카메라 → 기지로 이동
+        if (cameraRig != null && ch2BaseTarget != null)
+            yield return cameraRig.StartCinematicLerp(ch2BaseTarget, cinematicMoveDuration);
+
+        // 기지 감상
+        yield return new WaitForSeconds(cinematicHoldDuration);
+
+        // 카메라 → 플레이어2 복귀
+        if (cameraRig != null && playerAgent2 != null)
+            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+
+        // Player2 잠금 해제
+        LockPlayer2(false);
+
         BeginStep(Step.Ch2_Complete);
+    }
+
+    private void OnCh2AllMonstersDefeated()
+    {
+        if (ch2MonsterZone != null)
+            ch2MonsterZone.OnAllMonstersDefeated -= OnCh2AllMonstersDefeated;
+
+        BeginStep(Step.Ch2_GoToBase);
+    }
+
+    private void OnCh2WeaponPickedUp()
+    {
+        if (ch2WeaponPickup != null)
+            ch2WeaponPickup.OnPickedUp -= OnCh2WeaponPickedUp;
+
+        BeginStep(ch2MonsterTarget != null ? Step.Ch2_GoToMonster : Step.Ch2_Complete);
     }
 
     // ── 이벤트 핸들러 ────────────────────────────────────────

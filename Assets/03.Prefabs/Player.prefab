@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 825567595193614493}
   - component: {fileID: 6478446325043559793}
   - component: {fileID: 7416950129091683502}
+  - component: {fileID: 1282702126268941882}
   - component: {fileID: 2489307131369416134}
   m_Layer: 0
   m_Name: Player
@@ -273,6 +274,20 @@ MonoBehaviour:
   - {fileID: 1215473217031778527}
   - {fileID: 1298383895101715552}
   - {fileID: 1139543190437500788}
+--- !u!114 &1282702126268941882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084894704482327927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2aa3ba652531656468b62f2327738906, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  arrowPivot: {fileID: 1573044418422193815}
+  arrowSprite: {fileID: 7564273341956636051}
 --- !u!54 &2489307131369416134
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -696,7 +711,7 @@ GameObject:
   - component: {fileID: 7564273341956636051}
   - component: {fileID: 1687534494239556915}
   m_Layer: 0
-  m_Name: Square
+  m_Name: ArrowSprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

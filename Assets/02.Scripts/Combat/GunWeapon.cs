@@ -15,10 +15,9 @@ public class GunWeapon : WeaponBase
             return;
         }
 
-        Vector3 origin    = muzzle != null ? muzzle.position : transform.position;
-        Vector3 direction = (target.position - origin).normalized;
+        Vector3 origin = muzzle != null ? muzzle.position : transform.position;
 
         BulletBase bullet = bulletPool.Get();
-        bullet.Launch(origin, direction, damage, bulletPool);
+        bullet.Launch(origin, target, damage, bulletPool);
     }
 }
