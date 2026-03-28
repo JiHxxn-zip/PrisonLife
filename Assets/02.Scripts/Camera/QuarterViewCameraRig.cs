@@ -94,6 +94,13 @@ public class QuarterViewCameraRig : MonoBehaviour
         cinematicActive = false;
     }
 
+    public void SetTarget(Transform newTarget)
+    {
+        if (target != null) target.gameObject.SetActive(false);
+        target = newTarget;
+        if (target != null) target.gameObject.SetActive(true);
+    }
+
     // 평행 투영·orthographicSize 고정
     private void ApplyCameraSettings()
     {

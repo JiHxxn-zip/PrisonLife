@@ -280,8 +280,16 @@ public class TutorialManager : MonoBehaviour
         if (cameraRig != null && gateViewTarget != null)
             yield return cameraRig.StartCinematicLerp(gateViewTarget, cinematicMoveDuration);
 
-        // Gate 위에 3D 화살표 표시
+        // Gate 위에 3D 화살표 표시 + GateTrigger 활성화
         Set3DArrow(true, gateViewTarget);
+
+        if (gateTrigger != null)
+        {
+            gateTrigger.OnGatePassed += OnGatePassed;
+            gateTrigger.gameObject.SetActive(true);
+        }
+
+        Debug.Log("[Tutorial] Chapter2 Gate 안내 완료 — Gate 활성화");
 
         // 잠시 감상
         yield return new WaitForSeconds(cinematicHoldDuration);
@@ -293,15 +301,6 @@ public class TutorialManager : MonoBehaviour
         // 플레이어 이동 해제
         if (playerAgent != null)
             playerAgent.SetMovementLocked(false);
-
-        // GateTrigger 활성화 및 이벤트 구독
-        if (gateTrigger != null)
-        {
-            gateTrigger.OnGatePassed += OnGatePassed;
-            gateTrigger.gameObject.SetActive(true);
-        }
-
-        Debug.Log("[Tutorial] Chapter2 Gate 안내 완료 — Gate 활성화");
     }
 
     private void OnGatePassed(PlayerAgent player)

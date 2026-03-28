@@ -10,8 +10,10 @@ public class GateTrigger : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject worldUI;
 
-    [Header("텔레포트")]
-    [SerializeField] private Transform teleportTarget;
+    [Header("카메라")]
+    [SerializeField] private QuarterViewCameraRig cameraRig;
+    [Tooltip("Gate 통과 후 카메라가 추적할 새 타겟 (Player2)")]
+    [SerializeField] private Transform newCameraTarget;
     [SerializeField] private float holdDuration = 3f;
 
     public event Action<PlayerAgent> OnGatePassed;
@@ -27,7 +29,7 @@ public class GateTrigger : MonoBehaviour
     {
         if (_triggered) return;
 
-        PlayerAgent player = other.GetComponent<PlayerAgent>();
+        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
         if (player == null) return;
 
         _triggered = true;
@@ -46,9 +48,9 @@ public class GateTrigger : MonoBehaviour
         // FadeOut
         yield return UIManager.Instance.FadeOut();
 
-        // 텔레포트
-        if (teleportTarget != null)
-            player.transform.position = teleportTarget.position;
+        // 카메라 타겟을 Player2로 교체
+        if (cameraRig != null && newCameraTarget != null)
+            cameraRig.SetTarget(newCameraTarget);
 
         // WorldUI 숨김
         if (worldUI != null)
