@@ -55,6 +55,9 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
         if (cameraRig != null)
             yield return cameraRig.StartCinematicLerp(player.transform, cameraTravelDuration);
 
+        // 챕터 클리어 팝업
+        UIManager.Instance?.ShowChapterClearPopup();
+
         // 플레이어 이동 해제 & 존 비활성화
         controller?.SetMovementLocked(false);
         prisonZone?.DeactivateExpansionZone();

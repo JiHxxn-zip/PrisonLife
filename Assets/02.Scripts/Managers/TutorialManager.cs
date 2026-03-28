@@ -18,7 +18,11 @@ public class TutorialManager : MonoBehaviour
         Step3_CollectHandcuffs,
         Step4_HandcuffZone,
         Step5_MoneyZone,
-        Complete
+        Complete,
+
+        // ── Chapter 2 ──────────────────────────
+        Ch2_GoToGate,
+        Ch2_Complete
     }
 
     [Header("Player")]
@@ -33,6 +37,12 @@ public class TutorialManager : MonoBehaviour
 
     [Header("완료 시 활성화")]
     [SerializeField] private LevelUpZone levelUpZone;
+
+    [Header("챕터 2")]
+    [SerializeField] private ChapterClearPopup chapterClearPopup;
+    [SerializeField] private GateTrigger gateTrigger;
+    [Tooltip("챕터 2 시작 시 카메라가 이동할 Gate 위치")]
+    [SerializeField] private Transform gateViewTarget;
 
     [Header("카메라 연출")]
     [SerializeField] private QuarterViewCameraRig cameraRig;
@@ -85,6 +95,14 @@ public class TutorialManager : MonoBehaviour
         if (levelUpZone != null)
             levelUpZone.gameObject.SetActive(false);
 
+        // GateTrigger는 Chapter2 시작 전까지 비활성
+        if (gateTrigger != null)
+            gateTrigger.gameObject.SetActive(false);
+
+        // ChapterClearPopup Hide 이벤트 구독
+        if (chapterClearPopup != null)
+            chapterClearPopup.OnHidden += BeginChapter2;
+
         // 트리거 이벤트 구독
         if (sellTrigger != null)
             sellTrigger.OnPlayerEntered += OnSellTriggered;
@@ -108,6 +126,10 @@ public class TutorialManager : MonoBehaviour
             handcuffZone.OnPlayerEntered -= OnHandcuffZoneTriggered;
         if (moneyZone != null)
             moneyZone.OnPlayerEntered -= OnMoneyZoneTriggered;
+        if (chapterClearPopup != null)
+            chapterClearPopup.OnHidden -= BeginChapter2;
+        if (gateTrigger != null)
+            gateTrigger.OnGatePassed -= OnGatePassed;
     }
 
     // ── Update ────────────────────────────────────────────────
@@ -196,6 +218,16 @@ public class TutorialManager : MonoBehaviour
                 Set2DArrow(false, null);
                 StartCoroutine(CompleteCinematic());
                 break;
+
+            // ── Chapter 2: Gate 안내 ──────────────────────────
+            case Step.Ch2_GoToGate:
+                StartCoroutine(Chapter2GateCinematic());
+                break;
+
+            case Step.Ch2_Complete:
+                Set3DArrow(false, null);
+                Debug.Log("[Tutorial] Chapter2 완료");
+                break;
         }
     }
 
@@ -229,6 +261,55 @@ public class TutorialManager : MonoBehaviour
             playerAgent.SetMovementLocked(false);
 
         Debug.Log("[Tutorial] 카메라 복귀 완료 — 조작 해제");
+    }
+
+    // ── Chapter 2 ────────────────────────────────────────────
+
+    public void BeginChapter2()
+    {
+        BeginStep(Step.Ch2_GoToGate);
+    }
+
+    private System.Collections.IEnumerator Chapter2GateCinematic()
+    {
+        // 플레이어 이동 잠금
+        if (playerAgent != null)
+            playerAgent.SetMovementLocked(true);
+
+        // 카메라 → Gate로 이동
+        if (cameraRig != null && gateViewTarget != null)
+            yield return cameraRig.StartCinematicLerp(gateViewTarget, cinematicMoveDuration);
+
+        // Gate 위에 3D 화살표 표시
+        Set3DArrow(true, gateViewTarget);
+
+        // 잠시 감상
+        yield return new WaitForSeconds(cinematicHoldDuration);
+
+        // 카메라 → 플레이어 복귀
+        if (cameraRig != null && playerAgent != null)
+            yield return cameraRig.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
+
+        // 플레이어 이동 해제
+        if (playerAgent != null)
+            playerAgent.SetMovementLocked(false);
+
+        // GateTrigger 활성화 및 이벤트 구독
+        if (gateTrigger != null)
+        {
+            gateTrigger.OnGatePassed += OnGatePassed;
+            gateTrigger.gameObject.SetActive(true);
+        }
+
+        Debug.Log("[Tutorial] Chapter2 Gate 안내 완료 — Gate 활성화");
+    }
+
+    private void OnGatePassed(PlayerAgent player)
+    {
+        if (gateTrigger != null)
+            gateTrigger.OnGatePassed -= OnGatePassed;
+
+        BeginStep(Step.Ch2_Complete);
     }
 
     // ── 이벤트 핸들러 ────────────────────────────────────────
