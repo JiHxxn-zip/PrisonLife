@@ -30,9 +30,9 @@ public class NormalMonster : MonsterBase
         UpdateHitFlash();
     }
 
-    protected override void OnHit()
+    protected override void OnHit(Vector3 hitFrom)
     {
-        base.OnHit();
+        base.OnHit(hitFrom);
         StartHitFlash();
     }
 

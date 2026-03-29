@@ -143,9 +143,9 @@ GameObject:
   - component: {fileID: 4363648186717275343}
   - component: {fileID: 8856289020711352592}
   - component: {fileID: 2977829047457379081}
-  - component: {fileID: 3379422713632572064}
   - component: {fileID: 6983406158580739775}
   - component: {fileID: 5959231198234124300}
+  - component: {fileID: 3020903489236266437}
   - component: {fileID: 2489307131369416134}
   m_Layer: 0
   m_Name: Player 2
@@ -218,23 +218,6 @@ MonoBehaviour:
   joystickBg: {fileID: 0}
   joystickStick: {fileID: 0}
   joystickCanvas: {fileID: 0}
---- !u!114 &3379422713632572064
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1084894704482327927}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4c3c011208b8ed43af38ac7573d99d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  anchors:
-  - {fileID: 7407955072492346912}
-  - {fileID: 1976748725457252312}
-  - {fileID: 3132309979320351609}
-  - {fileID: 4060791509215162043}
 --- !u!114 &6983406158580739775
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,6 +230,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d070f50a1b464242aa5b87c99f7af31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  anchors:
+  - {fileID: 7407955072492346912}
+  - {fileID: 1976748725457252312}
+  - {fileID: 3132309979320351609}
+  - {fileID: 4060791509215162043}
   attackRangeSensor: {fileID: 5589838353022042510}
 --- !u!114 &5959231198234124300
 MonoBehaviour:
@@ -262,6 +250,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arrowPivot: {fileID: 1573044418422193815}
   arrowSprite: {fileID: 7564273341956636051}
+--- !u!114 &3020903489236266437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1084894704482327927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1d648adc579bbe448488bd8faec5e54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moneyText: {fileID: 0}
 --- !u!54 &2489307131369416134
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -48,11 +48,13 @@ public class GateTrigger : MonoBehaviour
         // FadeOut
         yield return UIManager.Instance.FadeOut();
 
-        // 카메라 타겟을 Player2로 교체
+        // 화면이 검은 동안 — 챕터1 UI 숨김, 카메라 타겟 교체, WorldUI 숨김
+        // 챕터2 UI 활성화는 TutorialManager.Chapter2WeaponCinematic 종료 시 처리
+        UIManager.Instance.HideCurrentChapter();
+
         if (cameraRig != null && newCameraTarget != null)
             cameraRig.SetTarget(newCameraTarget);
 
-        // WorldUI 숨김
         if (worldUI != null)
             worldUI.SetActive(false);
 

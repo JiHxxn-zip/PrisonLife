@@ -3,7 +3,7 @@ using UnityEngine;
 
 // 무기 프리팹에 부착.
 // 습득 전까지 상하 부유 + Y축 회전 모션을 재생한다.
-// 플레이어와 트리거 시 WeaponAnchorSystem에 장착 시도.
+// 플레이어와 트리거 시 PlayerCombat에 장착 시도.
 // 슬롯이 가득 찼으면 습득되지 않는다.
 [RequireComponent(typeof(WeaponBase))]
 [RequireComponent(typeof(Collider))]
@@ -41,10 +41,10 @@ public class WeaponPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        WeaponAnchorSystem anchors = other.GetComponentInParent<WeaponAnchorSystem>();
-        if (anchors != null)
+        PlayerCombat combat = other.GetComponentInParent<PlayerCombat>();
+        if (combat != null)
         {
-            bool equipped = anchors.TryEquip(_weapon);
+            bool equipped = combat.TryEquip(_weapon);
             if (!equipped) return;
         }
         else

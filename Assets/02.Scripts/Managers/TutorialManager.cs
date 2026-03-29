@@ -334,7 +334,6 @@ public class TutorialManager : MonoBehaviour
 
     public void BeginChapter2()
     {
-        UIManager.Instance?.ShowNextChapter();
         BeginStep(Step.Ch2_GoToGate);
     }
 
@@ -390,8 +389,9 @@ public class TutorialManager : MonoBehaviour
         if (cameraRig != null && playerAgent2 != null)
             yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
 
-        // Player2 잠금 해제
+        // Player2 잠금 해제 + 챕터2 UI 활성화
         LockPlayer2(false);
+        UIManager.Instance?.ShowNextChapter();
 
         // 시네마틱 완료 후 2D 화살표 활성화 + 픽업 이벤트 구독
         Set2DArrow(true, weaponTarget);

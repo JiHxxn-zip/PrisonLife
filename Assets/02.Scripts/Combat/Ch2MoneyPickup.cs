@@ -6,6 +6,8 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Ch2MoneyPickup : MonoBehaviour
 {
+    public const int MoneyPerPickup = 10;
+
     public static event Action OnMoneyCollected;
 
     private void Awake()

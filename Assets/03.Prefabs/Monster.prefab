@@ -51,7 +51,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 100
   moveSpeed: 3
-  moneyDropPrefab: {fileID: 3913780994475955751, guid: 54885c7f5bccae243b77082b61a37b88,
+  chaseRange: 8
+  returnSpeed: 4
+  returnStopDist: 0.2
+  knockbackForce: 6
+  knockbackDecay: 6
+  moneyDropPrefab: {fileID: 3913780994475955751, guid: 9e5be0978518a504eb97539b2436e76d,
     type: 3}
   monsterRenderer: {fileID: 747286851736048043}
   hitColor: {r: 1, g: 0, b: 0, a: 1}

@@ -75,6 +75,9 @@ public class ItemPickup : MonoBehaviour
             return; // MAX 등으로 못 넣으면 pickup은 유지
         }
 
+        if (itemType == ItemType.Money)
+            UIManager.Instance?.AddMoney(count * 100);
+
         if (destroyOnPickup)
         {
             Destroy(gameObject);

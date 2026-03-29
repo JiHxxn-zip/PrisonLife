@@ -74,7 +74,7 @@ public abstract class BulletBase : MonoBehaviour
 
     protected virtual void OnHit(IAttackable target)
     {
-        target.TakeDamage(damage);
+        target.TakeDamage(damage, transform.position);
         ReturnToPool();
     }
 
