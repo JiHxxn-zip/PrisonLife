@@ -44,6 +44,10 @@ public class TutorialManager : MonoBehaviour
     [Header("완료 시 활성화")]
     [SerializeField] private LevelUpZone levelUpZone;
 
+    [Header("챕터 2 시작 시 비활성화")]
+    [Tooltip("NpcCollectorAgent는 HiringZone에서 동적 생성되므로 런타임에 FindObjectsOfType으로 수집")]
+    [SerializeField] private NpcDeliveryAgent[] npcDeliveries;
+
     [Header("챕터 2")]
     [SerializeField] private ChapterClearPopup chapterClearPopup;
     [SerializeField] private GateTrigger gateTrigger;
@@ -56,6 +60,7 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private MonsterZone ch2MonsterZone;
     [Tooltip("몬스터 전멸 후 카메라가 이동할 기지 위치")]
     [SerializeField] private Transform ch2BaseTarget;
+    [SerializeField] private Ch2BaseZone ch2BaseZone;
 
     [Header("카메라 연출")]
     [SerializeField] private QuarterViewCameraRig cameraRig;
@@ -161,6 +166,8 @@ public class TutorialManager : MonoBehaviour
             ch2WeaponPickup.OnPickedUp -= OnCh2WeaponPickedUp;
         if (ch2MonsterZone != null)
             ch2MonsterZone.OnAllMonstersDefeated -= OnCh2AllMonstersDefeated;
+        if (ch2BaseZone != null)
+            ch2BaseZone.OnPlayerArrived -= OnCh2BaseArrived;
     }
 
     // ── 화살표 등록 (PlayerArrowAgent 호출) ───────────────────
@@ -334,6 +341,14 @@ public class TutorialManager : MonoBehaviour
 
     public void BeginChapter2()
     {
+        // 동적 생성된 NpcCollectorAgent 전체 비활성화
+        foreach (NpcCollectorAgent npc in FindObjectsOfType<NpcCollectorAgent>())
+            npc.gameObject.SetActive(false);
+
+        // 씬에 배치된 NpcDeliveryAgent 비활성화
+        foreach (NpcDeliveryAgent npc in npcDeliveries)
+            if (npc != null) npc.gameObject.SetActive(false);
+
         BeginStep(Step.Ch2_GoToGate);
     }
 
@@ -465,7 +480,16 @@ public class TutorialManager : MonoBehaviour
         // Player2 잠금 해제
         LockPlayer2(false);
 
-        BeginStep(Step.Ch2_Complete);
+        // BaseZone 도착 대기
+        if (ch2BaseZone != null)
+        {
+            ch2BaseZone.OnPlayerArrived += OnCh2BaseArrived;
+            Set2DArrow(true, ch2BaseZone.transform);
+        }
+        else
+        {
+            BeginStep(Step.Ch2_Complete);
+        }
     }
 
     private void OnCh2AllMonstersDefeated()
@@ -474,6 +498,15 @@ public class TutorialManager : MonoBehaviour
             ch2MonsterZone.OnAllMonstersDefeated -= OnCh2AllMonstersDefeated;
 
         BeginStep(Step.Ch2_GoToBase);
+    }
+
+    private void OnCh2BaseArrived()
+    {
+        if (ch2BaseZone != null)
+            ch2BaseZone.OnPlayerArrived -= OnCh2BaseArrived;
+
+        Set2DArrow(false, null);
+        BeginStep(Step.Ch2_Complete);
     }
 
     private void OnCh2WeaponPickedUp()
