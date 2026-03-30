@@ -639,6 +639,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clearPopup: {fileID: 4187205557389913218}
+  moneyText: {fileID: 7007894889710087974}
 --- !u!1 &7816742140154372365
 GameObject:
   m_ObjectHideFlags: 0

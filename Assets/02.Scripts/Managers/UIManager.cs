@@ -8,6 +8,11 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
+    [Header("Joystick")]
+    [SerializeField] private JoystickController joystick;
+
+    public Vector2 JoystickInput => joystick != null ? joystick.InputVector : Vector2.zero;
+
     [Header("Chapter UI Roots")]
     [Tooltip("챕터 순서대로 배치. 각 루트에는 IChapterUI 구현 컴포넌트가 있어야 합니다.")]
     [SerializeField] private GameObject[] chapterRoots;
@@ -112,6 +117,14 @@ public class UIManager : MonoBehaviour
     private void HandleMoneyCollected()
     {
         AddMoney(Ch2MoneyPickup.MoneyPerPickup);
+    }
+
+    // ── Chapter1 ──────────────────────────────────────
+
+    public void SetChapter1MoneyText(string text)
+    {
+        if (_chapterUIs.Length > 0 && _chapterUIs[0] is Chapter1UI ch1)
+            ch1.SetMoneyText(text);
     }
 
     // ── 클리어 팝업 ───────────────────────────────────

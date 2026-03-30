@@ -13,13 +13,11 @@ public class MetalCollectionZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        PlayerMetalCollector collector = other.GetComponentInParent<PlayerMetalCollector>();
-        collector?.ActivateForCurrentLevel();
+        other.GetComponentInParent<PlayerAgent>()?.ActivateMetalCollectorForCurrentLevel();
     }
 
     private void OnTriggerExit(Collider other)
     {
-        PlayerMetalCollector collector = other.GetComponentInParent<PlayerMetalCollector>();
-        collector?.Deactivate();
+        other.GetComponentInParent<PlayerAgent>()?.DeactivateMetalCollector();
     }
 }

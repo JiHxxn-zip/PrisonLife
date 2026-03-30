@@ -16,6 +16,11 @@ public class PlayerAgent : MonoBehaviour
     [Header("Handcuffs Hold")]
     [SerializeField] private HandcuffsHoldStack handcuffsHoldStack;
 
+    [Header("Metal Collector")]
+    [Tooltip("레벨별 메탈 수집 콜라이더 (인덱스 0=레벨1, 1=레벨2, 2=레벨3)")]
+    [SerializeField] private GameObject[] levelColliders = new GameObject[3];
+    private bool _metalCollectorActive;
+
     private HyperCasualPlayerController movementController;
     private BaseZone currentInteractionZone;
     private bool isMovementLockedByZone;
@@ -23,6 +28,7 @@ public class PlayerAgent : MonoBehaviour
     private void Awake()
     {
         movementController = GetComponent<HyperCasualPlayerController>();
+        DeactivateAllLevelColliders();
 
         if (itemStackInventory == null)
         {
@@ -114,7 +120,31 @@ public class PlayerAgent : MonoBehaviour
     public void AddLevel(int amount)
     {
         playerLevel = Mathf.Max(1, playerLevel + Mathf.Max(0, amount));
-        GetComponentInChildren<PlayerMetalCollector>()?.OnLevelUp();
+        if (_metalCollectorActive) ActivateMetalCollectorForCurrentLevel();
+    }
+
+    // ── Metal Collector ───────────────────────────────────────
+
+    public void ActivateMetalCollectorForCurrentLevel()
+    {
+        _metalCollectorActive = true;
+        DeactivateAllLevelColliders();
+        int index = Mathf.Clamp(Level - 1, 0, levelColliders.Length - 1);
+        if (levelColliders[index] != null)
+            levelColliders[index].SetActive(true);
+    }
+
+    public void DeactivateMetalCollector()
+    {
+        _metalCollectorActive = false;
+        DeactivateAllLevelColliders();
+    }
+
+    private void DeactivateAllLevelColliders()
+    {
+        for (int i = 0; i < levelColliders.Length; i++)
+            if (levelColliders[i] != null)
+                levelColliders[i].SetActive(false);
     }
 
     // 튜토리얼 카메라 연출 등 외부에서 직접 이동 제한/해제

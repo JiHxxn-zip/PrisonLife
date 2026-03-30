@@ -49,7 +49,7 @@ public class WeaponPickup : MonoBehaviour
         }
         else
         {
-            if (other.GetComponentInParent<PlayerArrowAgent>() == null) return;
+            if (other.GetComponentInParent<HyperCasualPlayerController>() == null) return;
         }
 
         // 픽업 성공 — 앵커 기준 원점으로 리셋, 회전 중단 후 상하 모션만 유지

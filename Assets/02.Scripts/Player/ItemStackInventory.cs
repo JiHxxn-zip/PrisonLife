@@ -42,7 +42,6 @@ public class ItemStackInventory : MonoBehaviour
 
     [Header("Values (UI 연동용)")]
     [SerializeField] private int moneyValuePerItem = 10;
-    [SerializeField] private TMP_Text moneyValueUI;
 
     private readonly Dictionary<ItemType, GameObject> prefabByType = new Dictionary<ItemType, GameObject>();
     private readonly List<GameObject> metalVisuals = new List<GameObject>();
@@ -292,16 +291,10 @@ public class ItemStackInventory : MonoBehaviour
 
     private void RefreshMoneyUI()
     {
-        if (moneyValueUI == null) return;
-
-        int targetValue = MoneyTotalValue;
-
         if (moneyUICoroutine != null)
-        {
             StopCoroutine(moneyUICoroutine);
-        }
 
-        moneyUICoroutine = StartCoroutine(AnimateMoneyUI(moneyUIDisplayedValue, targetValue));
+        moneyUICoroutine = StartCoroutine(AnimateMoneyUI(moneyUIDisplayedValue, MoneyTotalValue));
     }
 
     private IEnumerator AnimateMoneyUI(int from, int to)
@@ -313,14 +306,13 @@ public class ItemStackInventory : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
-            int displayed = Mathf.RoundToInt(Mathf.Lerp(from, to, t));
-            moneyUIDisplayedValue = displayed;
-            moneyValueUI.text = displayed.ToString();
+            moneyUIDisplayedValue = Mathf.RoundToInt(Mathf.Lerp(from, to, t));
+            UIManager.Instance?.SetChapter1MoneyText(moneyUIDisplayedValue.ToString());
             yield return null;
         }
 
         moneyUIDisplayedValue = to;
-        moneyValueUI.text = to.ToString();
+        UIManager.Instance?.SetChapter1MoneyText(to.ToString());
         moneyUICoroutine = null;
     }
 
@@ -359,7 +351,7 @@ public class ItemStackInventory : MonoBehaviour
             moneyUICoroutine = null;
         }
         moneyUIDisplayedValue = 0;
-        if (moneyValueUI != null) moneyValueUI.text = "0";
+        UIManager.Instance?.SetChapter1MoneyText("0");
     }
 
     // Metal은 항상 backAnchors[0] 기준으로 slot 0부터 쌓임
