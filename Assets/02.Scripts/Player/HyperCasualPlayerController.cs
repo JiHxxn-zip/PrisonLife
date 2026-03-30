@@ -1,7 +1,9 @@
 using UnityEngine;
 
 // 드래그 이동·쿼터뷰 기준 회전·존에서의 이동 잠금.
-// JoystickController.OnMove 이벤트를 구독해 입력을 받는다.
+// Update  : 조이스틱 입력 → 월드 이동 벡터 계산
+// FixedUpdate : Rigidbody.MovePosition / MoveRotation 으로 물리 충돌 보장
+[RequireComponent(typeof(Rigidbody))]
 public class HyperCasualPlayerController : MonoBehaviour
 {
     [Header("Movement")]
@@ -14,18 +16,26 @@ public class HyperCasualPlayerController : MonoBehaviour
     [SerializeField] private Transform arrowPivot;
     [SerializeField] private Transform arrowSprite;
 
-    private Camera _camera;
-    private Vector3 _currentMoveDir;
-    private Vector3 _lastMoveDir;
-    private bool _movementLocked;
-    private bool _started;
+    private Rigidbody _rb;
+    private Camera    _camera;
+    private Vector3   _currentMoveDir;
+    private Vector3   _lastMoveDir;
+    private bool      _movementLocked;
+    private bool      _started;
 
-    public bool HasMovementInput => _currentMoveDir.sqrMagnitude > 0.0001f;
-    public float MoveSpeed => moveSpeed;
+    public bool  HasMovementInput => _currentMoveDir.sqrMagnitude > 0.0001f;
+    public float MoveSpeed        => moveSpeed;
 
     private void Awake()
     {
+        _rb     = GetComponent<Rigidbody>();
         _camera = Camera.main;
+
+        // 회전·Y축 위치는 코드로만 제어
+        _rb.freezeRotation = true;
+        _rb.constraints    = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+        _rb.useGravity     = false;
+        _rb.interpolation  = RigidbodyInterpolation.Interpolate;
     }
 
     private void Start()
@@ -37,6 +47,8 @@ public class HyperCasualPlayerController : MonoBehaviour
     private void OnEnable()
     {
         if (_started) TutorialManager.Instance?.RegisterArrow(arrowPivot, arrowSprite);
+
+        CameraManager.Instance?.SetTarget(this.transform);
     }
 
     private void OnDisable()
@@ -44,14 +56,8 @@ public class HyperCasualPlayerController : MonoBehaviour
         TutorialManager.Instance?.RegisterArrow(null, null);
     }
 
+    // 입력 계산 — 렌더 프레임마다 최신 값 유지
     private void Update()
-    {
-        UpdateMovement();
-        UpdateRotation();
-    }
-
-    // 카메라 평면 기준 이동 (잠금 시 속도 0)
-    private void UpdateMovement()
     {
         if (_camera == null || _movementLocked)
         {
@@ -69,18 +75,20 @@ public class HyperCasualPlayerController : MonoBehaviour
 
         if (_currentMoveDir.sqrMagnitude > 0.0001f)
             _lastMoveDir = _currentMoveDir;
-
-        transform.position += _currentMoveDir * (moveSpeed * Time.deltaTime);
     }
 
-    // 이동 중: 이동 방향, 정지: 마지막 이동 방향 유지
-    private void UpdateRotation()
+    // 물리 이동 + 회전 — FixedUpdate에서 Rigidbody API 사용
+    private void FixedUpdate()
     {
+        // 이동 (Y축 고정이므로 수평 속도만 설정)
+        _rb.velocity = _currentMoveDir * moveSpeed;
+
+        // 회전
         Vector3 lookDir = _currentMoveDir.sqrMagnitude > 0.0001f ? _currentMoveDir : _lastMoveDir;
         if (lookDir.sqrMagnitude < 0.0001f) return;
 
-        Quaternion target = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, target, rotationLerpSpeed * Time.deltaTime);
+        Quaternion targetRot = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+        _rb.MoveRotation(Quaternion.Slerp(_rb.rotation, targetRot, rotationLerpSpeed * Time.fixedDeltaTime));
     }
 
     // 존 상호작용 등 — 이동 허용/차단
@@ -88,7 +96,10 @@ public class HyperCasualPlayerController : MonoBehaviour
     {
         _movementLocked = locked;
         if (locked)
-            _currentMoveDir = Vector3.zero;
+        {
+            _currentMoveDir    = Vector3.zero;
+            _rb.velocity = Vector3.zero;
+        }
     }
 
     // 스탯·업그레이드 반영용 이동 속도 설정

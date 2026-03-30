@@ -14,7 +14,6 @@ public class PrisonZone : MonoBehaviour
     [SerializeField] private GameObject expansionZoneObject;
 
     [Header("카메라 연출 (확장 Zone 활성화 전 시네마틱)")]
-    [SerializeField] private QuarterViewCameraRig cameraRig;
     [SerializeField] private PlayerAgent          player;
     [Tooltip("카메라가 이동할 기준 Transform (미설정 시 expansionZoneObject 위치 사용)")]
     [SerializeField] private Transform            expansionZoneCameraTarget;
@@ -120,7 +119,7 @@ public class PrisonZone : MonoBehaviour
     {
         if (expansionZoneObject == null || !expansionAvailable) return;
 
-        if (cameraRig != null && player != null)
+        if (player != null)
             StartCoroutine(ExpansionCinematicRoutine());
         else
             expansionZoneObject.SetActive(true);
@@ -136,7 +135,7 @@ public class PrisonZone : MonoBehaviour
             ? expansionZoneCameraTarget
             : expansionZoneObject.transform;
 
-        yield return cameraRig.StartCinematicLerp(camTarget, cameraTravelDuration);
+        yield return CameraManager.Instance?.StartCinematicLerp(camTarget, cameraTravelDuration);
 
         // 카메라 도착 후 ExpansionZone 활성화
         expansionZoneObject.SetActive(true);
@@ -146,7 +145,7 @@ public class PrisonZone : MonoBehaviour
         yield return new WaitForSeconds(cameraHoldDuration);
 
         // 카메라를 플레이어에게 복귀
-        yield return cameraRig.StartCinematicLerp(player.transform, cameraTravelDuration);
+        yield return CameraManager.Instance?.StartCinematicLerp(player.transform, cameraTravelDuration);
 
         // 플레이어 이동 해제
         player.SetMovementLocked(false);

@@ -20,7 +20,6 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
     [SerializeField] private GameObject mapObjectToEnable;
 
     [Header("카메라 연출")]
-    [SerializeField] private QuarterViewCameraRig cameraRig;
     [Tooltip("새 맵 감상 시 카메라가 바라볼 기준 위치")]
     [SerializeField] private Transform mapViewTarget;
     [SerializeField] private float cameraTravelDuration = 1.5f;
@@ -41,8 +40,8 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
         controller?.SetMovementLocked(true);
 
         // 카메라 → 새 맵으로 이동
-        if (cameraRig != null && mapViewTarget != null)
-            yield return cameraRig.StartCinematicLerp(mapViewTarget, cameraTravelDuration);
+        if (mapViewTarget != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(mapViewTarget, cameraTravelDuration);
 
         // 맵 전환
         if (mapObjectToDisable != null) mapObjectToDisable.SetActive(false);
@@ -52,8 +51,7 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
         yield return new WaitForSeconds(mapShowDuration);
 
         // 카메라 → 플레이어로 복귀
-        if (cameraRig != null)
-            yield return cameraRig.StartCinematicLerp(player.transform, cameraTravelDuration);
+        yield return CameraManager.Instance?.StartCinematicLerp(player.transform, cameraTravelDuration);
 
         // 챕터 클리어 팝업
         UIManager.Instance?.ShowClear();

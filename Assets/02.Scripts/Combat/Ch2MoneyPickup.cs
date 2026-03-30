@@ -7,6 +7,8 @@ using UnityEngine;
 public class Ch2MoneyPickup : MonoBehaviour
 {
     public const int MoneyPerPickup = 10;
+    [SerializeField] private AudioClip moneythrowSfx;
+
 
     public static event Action OnMoneyCollected;
 
@@ -18,6 +20,8 @@ public class Ch2MoneyPickup : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (other.GetComponentInParent<HyperCasualPlayerController>() == null) return;
+
+        SoundManager.Instance?.PlaySound(moneythrowSfx, 0.2f);
         OnMoneyCollected?.Invoke();
         Destroy(gameObject);
     }

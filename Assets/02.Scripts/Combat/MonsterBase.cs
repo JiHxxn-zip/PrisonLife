@@ -23,6 +23,8 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     [Header("넉백")]
     [SerializeField] private float knockbackForce = 6f;
     [SerializeField] private float knockbackDecay = 10f;  // 감속 계수 (클수록 빨리 멈춤)
+    [SerializeField] private AudioClip knockbackSfx;
+    [SerializeField] private AudioClip OnDeathSfx;
 
     [Header("드롭")]
     [SerializeField] private GameObject moneyDropPrefab;
@@ -143,6 +145,8 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
         if (playerTransform == null)
             playerTransform = FindObjectOfType<PlayerCombat>()?.transform;
 
+        SoundManager.Instance?.PlaySound(knockbackSfx, 0.2f);
+
         // 추적 시작 (귀환 중단)
         isChasing    = true;
         _isReturning = false;
@@ -159,6 +163,8 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
         OnDied?.Invoke();
         if (moneyDropPrefab != null)
             Instantiate(moneyDropPrefab, transform.position, Quaternion.identity);
+
+        SoundManager.Instance?.PlaySound(OnDeathSfx, 0.2f);
         gameObject.SetActive(false);
     }
 

@@ -166,6 +166,8 @@ MonoBehaviour:
   returnStopDist: 0.2
   knockbackForce: 6
   knockbackDecay: 6
+  knockbackSfx: {fileID: 8300000, guid: d02406b064dfb5b4da95149910ee8c05, type: 3}
+  OnDeathSfx: {fileID: 8300000, guid: c2e54d8675f9c604083cd05b1a192b19, type: 3}
   moneyDropPrefab: {fileID: 3913780994475955751, guid: 9e5be0978518a504eb97539b2436e76d,
     type: 3}
   attackRange: 2

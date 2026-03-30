@@ -118,3 +118,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b393f408acd0787419767e17c27111d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  moneythrowSfx: {fileID: 8300000, guid: 566c77e75ca1c1a47990fc88cf38bd64, type: 3}

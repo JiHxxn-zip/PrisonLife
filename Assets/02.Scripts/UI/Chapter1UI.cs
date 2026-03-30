@@ -4,8 +4,8 @@ using UnityEngine;
 // 챕터1 UI — IChapterUI 구현.
 public class Chapter1UI : MonoBehaviour, IChapterUI
 {
-    [SerializeField] private ChapterClearPopup clearPopup;
     [SerializeField] private TMP_Text moneyText;
+    [SerializeField] private ChapterClearPopup clearPopup;
 
     public void OnShow() { }
     public void OnHide() { }

@@ -32,7 +32,7 @@ public class TutorialManager : MonoBehaviour
 
     [Header("Player")]
     [SerializeField] private PlayerAgent playerAgent;
-    [SerializeField] private Transform playerAgent2;
+    [SerializeField] private HyperCasualPlayerController playerAgent2;
 
     [Header("Tutorial Targets (순서대로)")]
     [SerializeField] private CollectionZonePool collectionZonePool;                             // Step 1
@@ -63,7 +63,6 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private Ch2BaseZone ch2BaseZone;
 
     [Header("카메라 연출")]
-    [SerializeField] private QuarterViewCameraRig cameraRig;
     [SerializeField] private float cinematicMoveDuration = 1.5f;
     [SerializeField] private float cinematicHoldDuration = 1.5f;
 
@@ -93,13 +92,12 @@ public class TutorialManager : MonoBehaviour
     private Transform arrow3DTarget;
     private Transform arrow2DTarget;
     private float spriteBaseLocalZ;    // ArrowSprite 초기 로컬 Z (바운스 기준)
+    private float _arrow3DOffsetY;     // 현재 활성화된 3D 화살표의 Y 오프셋
 
     // PlayerArrowAgent가 런타임에 등록
     private Transform arrowPivot;
     private Transform arrowSprite;
 
-    // Player2 이동 컨트롤러 (playerAgent2에서 캐시)
-    private HyperCasualPlayerController _player2Controller;
 
     // ── 초기화 ────────────────────────────────────────────────
 
@@ -110,9 +108,6 @@ public class TutorialManager : MonoBehaviour
 
     private void Start()
     {
-        if (playerAgent == null)
-            playerAgent = FindObjectOfType<PlayerAgent>();
-
         // LevelUpZone은 튜토리얼 완료 전까지 비활성
         if (levelUpZone != null)
             levelUpZone.gameObject.SetActive(false);
@@ -120,10 +115,6 @@ public class TutorialManager : MonoBehaviour
         // GateTrigger는 Chapter2 시작 전까지 비활성
         if (gateTrigger != null)
             gateTrigger.gameObject.SetActive(false);
-
-        // Player2 컨트롤러 캐시
-        if (playerAgent2 != null)
-            _player2Controller = playerAgent2.GetComponent<HyperCasualPlayerController>();
 
         // ChapterClearPopup 이벤트 구독
         if (chapterClearPopup != null)
@@ -186,7 +177,7 @@ public class TutorialManager : MonoBehaviour
     // ── 이동 잠금 헬퍼 ───────────────────────────────────────
 
     private void LockPlayer1(bool locked) => playerAgent?.SetMovementLocked(locked);
-    private void LockPlayer2(bool locked) => _player2Controller?.SetMovementLocked(locked);
+    private void LockPlayer2(bool locked) => playerAgent2?.SetMovementLocked(locked);
 
     private void OnChapterClearPopupShown() => LockPlayer1(true);
 
@@ -203,11 +194,11 @@ public class TutorialManager : MonoBehaviour
                 BeginStep(Step.Step2_SellMetal);
         }
 
-        // 3D 화살표 바운스
+        // 3D 화살표 바운스 (Y 위치만 갱신, 회전은 Set3DArrow에서 지정한 값 유지)
         if (arrow3D != null && arrow3D.activeSelf && arrow3DTarget != null)
         {
             float bounce = Mathf.Sin(Time.time * bounceSpeed) * bounceHeight;
-            arrow3D.transform.position = arrow3DTarget.position + Vector3.up * (arrowOffsetY + bounce);
+            arrow3D.transform.position = arrow3DTarget.position + Vector3.up * (_arrow3DOffsetY + bounce);
         }
 
         // 2D 화살표 방향 추적
@@ -242,7 +233,7 @@ public class TutorialManager : MonoBehaviour
         {
             // ── Step 1: Metal 채집 안내 ──────────────────────
             case Step.Step1_CollectMetal:
-                Set3DArrow(true, collectionZonePool != null ? collectionZonePool.transform : null);
+                Set3DArrow(true, collectionZonePool != null ? collectionZonePool.transform : null, 0);
                 Set2DArrow(false, null);
                 break;
 
@@ -255,24 +246,24 @@ public class TutorialManager : MonoBehaviour
             // ── Step 3: Handcuffs 수거 안내 ──────────────────
             case Step.Step3_CollectHandcuffs:
                 Transform hcTarget = handcuffsCollectTrigger != null ? handcuffsCollectTrigger.transform : null;
-                Set3DArrow(true, hcTarget);
+                Set3DArrow(true, hcTarget, 0);
                 Set2DArrow(true, hcTarget);
                 break;
 
             // ── Step 4: HandcuffZone 안내 ────────────────────
             case Step.Step4_HandcuffZone:
                 Set2DArrow(false, null);
-                Set3DArrow(true, handcuffZone != null ? handcuffZone.transform : null);
+                Set3DArrow(true, handcuffZone != null ? handcuffZone.transform : null, 0);
                 break;
 
             // ── Step 5: MoneyZone 안내 ───────────────────────
             case Step.Step5_MoneyZone:
-                Set3DArrow(true, moneyZone != null ? moneyZone.transform : null);
+                Set3DArrow(true, moneyZone != null ? moneyZone.transform : null, 0);
                 break;
 
             // ── Complete ─────────────────────────────────────
             case Step.Complete:
-                Set3DArrow(false, null);
+                Set3DArrow(false, null, 2, 90);
                 Set2DArrow(false, null);
                 StartCoroutine(CompleteCinematic());
                 break;
@@ -315,8 +306,8 @@ public class TutorialManager : MonoBehaviour
             playerAgent.SetMovementLocked(true);
 
         // 카메라를 LevelUpZone으로 이동 (cinematicMoveDuration 초)
-        if (cameraRig != null && levelUpZone != null)
-            yield return cameraRig.StartCinematicLerp(levelUpZone.transform, cinematicMoveDuration);
+        if (levelUpZone != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(levelUpZone.transform, cinematicMoveDuration);
 
         // 도착 시 LevelUpZone 활성화
         if (levelUpZone != null)
@@ -328,8 +319,8 @@ public class TutorialManager : MonoBehaviour
         yield return new WaitForSeconds(cinematicHoldDuration);
 
         // 카메라를 플레이어에게 복귀 (cinematicMoveDuration 초)
-        if (cameraRig != null && playerAgent != null)
-            yield return cameraRig.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
+        if (playerAgent != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
 
         // 플레이어 조작 해제
         if (playerAgent != null)
@@ -362,8 +353,8 @@ public class TutorialManager : MonoBehaviour
         LockPlayer1(true);
 
         // 카메라 → Gate로 이동
-        if (cameraRig != null && gateViewTarget != null)
-            yield return cameraRig.StartCinematicLerp(gateViewTarget, cinematicMoveDuration);
+        if (gateViewTarget != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(gateViewTarget, cinematicMoveDuration);
 
         // Gate 위에 3D 화살표 표시 + GateTrigger 활성화
         Set3DArrow(true, gateViewTarget);
@@ -380,8 +371,8 @@ public class TutorialManager : MonoBehaviour
         yield return new WaitForSeconds(cinematicHoldDuration);
 
         // 카메라 → 플레이어1로 복귀 (아직 포탈 통과 전)
-        if (cameraRig != null && playerAgent != null)
-            yield return cameraRig.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
+        if (playerAgent != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(playerAgent.transform, cinematicMoveDuration);
 
         // Player1 잠금 해제 → 포탈로 이동 가능
         LockPlayer1(false);
@@ -395,15 +386,15 @@ public class TutorialManager : MonoBehaviour
         LockPlayer2(true);
 
         // 카메라 → 무기로 이동
-        if (cameraRig != null && weaponTarget != null)
-            yield return cameraRig.StartCinematicLerp(weaponTarget, cinematicMoveDuration);
+        if (weaponTarget != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(weaponTarget, cinematicMoveDuration);
 
         // 무기 위치 감상
         yield return new WaitForSeconds(cinematicHoldDuration);
 
         // 카메라 → 플레이어2로 복귀
-        if (cameraRig != null && playerAgent2 != null)
-            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+        if (playerAgent2 != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(playerAgent2.transform, cinematicMoveDuration);
 
         // Player2 잠금 해제 + 챕터2 UI 활성화
         LockPlayer2(false);
@@ -432,8 +423,8 @@ public class TutorialManager : MonoBehaviour
         LockPlayer2(true);
 
         // 카메라 → 몬스터로 이동
-        if (cameraRig != null && ch2MonsterTarget != null)
-            yield return cameraRig.StartCinematicLerp(ch2MonsterTarget, cinematicMoveDuration);
+        if (ch2MonsterTarget != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(ch2MonsterTarget, cinematicMoveDuration);
 
         // 몬스터 위에 3D 화살표 표시
         Set3DArrow(true, ch2MonsterTarget);
@@ -449,8 +440,8 @@ public class TutorialManager : MonoBehaviour
         yield return new WaitForSeconds(cinematicHoldDuration);
 
         // 카메라 → 플레이어2로 복귀
-        if (cameraRig != null && playerAgent2 != null)
-            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+        if (playerAgent2 != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(playerAgent2.transform, cinematicMoveDuration);
 
         // Player2 잠금 해제
         LockPlayer2(false);
@@ -468,15 +459,15 @@ public class TutorialManager : MonoBehaviour
         Set2DArrow(false, null);
 
         // 카메라 → 기지로 이동
-        if (cameraRig != null && ch2BaseTarget != null)
-            yield return cameraRig.StartCinematicLerp(ch2BaseTarget, cinematicMoveDuration);
+        if (ch2BaseTarget != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(ch2BaseTarget, cinematicMoveDuration);
 
         // 기지 감상
         yield return new WaitForSeconds(cinematicHoldDuration);
 
         // 카메라 → 플레이어2 복귀
-        if (cameraRig != null && playerAgent2 != null)
-            yield return cameraRig.StartCinematicLerp(playerAgent2, cinematicMoveDuration);
+        if (playerAgent2 != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(playerAgent2.transform, cinematicMoveDuration);
 
         // Player2 잠금 해제
         LockPlayer2(false);
@@ -552,7 +543,9 @@ public class TutorialManager : MonoBehaviour
 
     // ── 화살표 제어 ───────────────────────────────────────────
 
-    private void Set3DArrow(bool active, Transform target)
+    // offsetY : 타겟 위 높이 오프셋 (기본값 = arrowOffsetY)
+    // rotationY : 화살표 Y축 회전 (기본값 = 0)
+    private void Set3DArrow(bool active, Transform target, float offsetY = -1f, float rotationY = 0f)
     {
         arrow3DTarget = active ? target : null;
 
@@ -567,10 +560,13 @@ public class TutorialManager : MonoBehaviour
 
             if (arrow3D != null)
             {
-                // 활성화 전에 위치를 먼저 지정해 첫 프레임 깜빡임 방지
-                if (target != null)
-                    arrow3D.transform.position = target.position + Vector3.up * arrowOffsetY;
+                _arrow3DOffsetY = offsetY < 0f ? arrowOffsetY : offsetY;
 
+                // 활성화 전에 위치·회전을 먼저 지정해 첫 프레임 깜빡임 방지
+                if (target != null)
+                    arrow3D.transform.position = target.position + Vector3.up * _arrow3DOffsetY;
+
+                arrow3D.transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
                 arrow3D.SetActive(true);
             }
         }

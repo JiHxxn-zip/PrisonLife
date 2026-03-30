@@ -7,11 +7,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class GateTrigger : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField] private GameObject worldUI;
-
     [Header("카메라")]
-    [SerializeField] private QuarterViewCameraRig cameraRig;
     [Tooltip("Gate 통과 후 카메라가 추적할 새 타겟 (Player2)")]
     [SerializeField] private Transform newCameraTarget;
     [SerializeField] private float holdDuration = 3f;
@@ -38,10 +34,6 @@ public class GateTrigger : MonoBehaviour
 
     private IEnumerator GateSequence(PlayerAgent player)
     {
-        // WorldUI 표시
-        if (worldUI != null)
-            worldUI.SetActive(true);
-
         // holdDuration 초 대기
         yield return new WaitForSeconds(holdDuration);
 
@@ -52,11 +44,8 @@ public class GateTrigger : MonoBehaviour
         // 챕터2 UI 활성화는 TutorialManager.Chapter2WeaponCinematic 종료 시 처리
         UIManager.Instance.HideCurrentChapter();
 
-        if (cameraRig != null && newCameraTarget != null)
-            cameraRig.SetTarget(newCameraTarget);
-
-        if (worldUI != null)
-            worldUI.SetActive(false);
+        if (newCameraTarget != null)
+            newCameraTarget.gameObject.SetActive(true);
 
         // FadeIn
         yield return UIManager.Instance.FadeIn();
