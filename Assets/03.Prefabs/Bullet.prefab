@@ -49,6 +49,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   speed: 10
   maxLifetime: 3
+  hitDistance: 0.3
 --- !u!65 &8007631261371023392
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -113,7 +114,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 6096d102e9ba19d4bb5ac2f5316a7ff6,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 5
+      value: 3.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 6096d102e9ba19d4bb5ac2f5316a7ff6,
         type: 3}
@@ -173,7 +174,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 6096d102e9ba19d4bb5ac2f5316a7ff6,
         type: 3}
       propertyPath: m_ConstrainProportionsScale
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 6096d102e9ba19d4bb5ac2f5316a7ff6,
         type: 3}

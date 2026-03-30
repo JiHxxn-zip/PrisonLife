@@ -301,6 +301,7 @@ public class TutorialManager : MonoBehaviour
                 Set3DArrow(false, null);
                 Set2DArrow(false, null);
                 Debug.Log("[Tutorial] Chapter2 완료");
+                StartCoroutine(Chapter2CompleteCinematic());
                 break;
         }
     }
@@ -507,6 +508,12 @@ public class TutorialManager : MonoBehaviour
 
         Set2DArrow(false, null);
         BeginStep(Step.Ch2_Complete);
+    }
+
+    private System.Collections.IEnumerator Chapter2CompleteCinematic()
+    {
+        yield return new WaitForSeconds(2f);
+        UIManager.Instance?.ShowClear();
     }
 
     private void OnCh2WeaponPickedUp()

@@ -6172,7 +6172,7 @@ Transform:
   m_GameObject: {fileID: 599015998}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 5.42, y: 0.1, z: -8}
+  m_LocalPosition: {x: 5.42, y: 0.13, z: -8}
   m_LocalScale: {x: 1.8, y: 1, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7683,7 +7683,7 @@ Transform:
   m_GameObject: {fileID: 727855915}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.4, y: 0.1, z: -8}
+  m_LocalPosition: {x: 1.4, y: 0.13, z: -8}
   m_LocalScale: {x: 1, y: 1, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -11428,8 +11428,8 @@ Transform:
   m_GameObject: {fileID: 1155065427}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 11.1, y: -1, z: -0.4}
-  m_LocalScale: {x: 0.27535, y: 1, z: 2.66}
+  m_LocalPosition: {x: 11.1, y: -1, z: 0.94}
+  m_LocalScale: {x: 0.27535, y: 1, z: 1.6735097}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 38878684}
@@ -14815,7 +14815,7 @@ MonoBehaviour:
   worldUI: {fileID: 1167279493}
   cameraRig: {fileID: 330585547}
   newCameraTarget: {fileID: 1430859955}
-  holdDuration: 3
+  holdDuration: 1
 --- !u!4 &1596363179
 Transform:
   m_ObjectHideFlags: 0
