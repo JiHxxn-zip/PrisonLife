@@ -4,7 +4,9 @@ using UnityEngine;
 // 몬스터 베이스 클래스. IAttackable 구현.
 // 피격 시 플레이어 확인 후 추적 시작.
 // chaseRange 이상 멀어지면 귀환, 피격 시 공격 방향 반대로 넉백.
+// HP 관리는 HpComponent에 위임 — TakeDamage 호출 시 OnHPChanged 이벤트로 OverheadHpBar 자동 갱신.
 // 서브클래스에서 OnHit / OnDeath / Chase 오버라이드로 다양한 몬스터 유형 확장.
+[RequireComponent(typeof(HpComponent))]
 public abstract class MonsterBase : MonoBehaviour, IAttackable
 {
     public event Action OnDied;
@@ -25,11 +27,10 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     [Header("드롭")]
     [SerializeField] private GameObject moneyDropPrefab;
 
-    protected int       currentHp;
-    protected Transform playerTransform;
-    protected bool      isChasing;
+    protected HpComponent _hp;
+    protected Transform   playerTransform;
+    protected bool        isChasing;
 
-    private bool    _isDead;
     private bool    _isReturning;
     private Vector3 _homePosition;
     private Vector3 _knockbackVelocity;
@@ -38,15 +39,15 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
 
     protected virtual void Awake()
     {
-        currentHp     = maxHp;
+        _hp           = GetComponent<HpComponent>();
+        _hp.Initialize(maxHp);
         _homePosition = transform.position;
     }
 
     protected virtual void OnEnable()
     {
-        currentHp          = maxHp;
+        _hp.ResetHp();
         isChasing          = false;
-        _isDead            = false;
         _isReturning       = false;
         _knockbackVelocity = Vector3.zero;
     }
@@ -57,7 +58,7 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
     {
         UpdateKnockback();
 
-        if (_isDead) return;
+        if (_hp.IsDead) return;
 
         if (isChasing)
         {
@@ -128,18 +129,10 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
 
     public virtual void TakeDamage(int damage, Vector3 hitFrom)
     {
-        if (_isDead) return;
-        currentHp -= damage;
-
-        if (currentHp <= 0)
-        {
-            _isDead = true;
-            OnDeath();
-        }
-        else
-        {
-            OnHit(hitFrom);
-        }
+        if (_hp.IsDead) return;
+        _hp.TakeDamage(damage); // OnHPChanged 이벤트 발행 → OverheadHpBar 자동 갱신
+        if (_hp.IsDead) OnDeath();
+        else            OnHit(hitFrom);
     }
 
     // ── 피격 / 사망 훅 ───────────────────────────────
@@ -169,6 +162,6 @@ public abstract class MonsterBase : MonoBehaviour, IAttackable
         gameObject.SetActive(false);
     }
 
-    public int CurrentHp => currentHp;
-    public int MaxHp     => maxHp;
+    public int CurrentHp => _hp.CurrentHp;
+    public int MaxHp     => _hp.MaxHp;
 }

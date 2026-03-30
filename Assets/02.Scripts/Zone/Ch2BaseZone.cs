@@ -36,6 +36,14 @@ public class Ch2BaseZone : MonoBehaviour
         foreach (GameObject obj in objectsToActivate)
             if (obj != null) obj.SetActive(true);
 
+        RestorePlayerHp(other);
         OnPlayerArrived?.Invoke();
+    }
+
+    private void RestorePlayerHp(Collider playerCollider)
+    {
+        HpComponent hp = playerCollider.GetComponentInParent<HpComponent>();
+        if (hp == null || hp.CurrentHp >= hp.MaxHp) return;
+        hp.Heal(hp.MaxHp - hp.CurrentHp);
     }
 }

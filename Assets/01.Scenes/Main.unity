@@ -1499,7 +1499,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1d648adc579bbe448488bd8faec5e54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moneyText: {fileID: 1552394222}
 --- !u!1001 &157634625
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5853,6 +5852,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1969759338}
     m_Modifications:
+    - target: {fileID: 28126326174981630, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 330585545}
     - target: {fileID: 2961988817976030328, guid: d68be3ea9a6076a408850e95b5993c6a,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -5907,6 +5911,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Monster (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -12309,6 +12323,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1969759338}
     m_Modifications:
+    - target: {fileID: 28126326174981630, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 330585545}
     - target: {fileID: 2961988817976030328, guid: d68be3ea9a6076a408850e95b5993c6a,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -12363,6 +12382,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Monster (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -14285,18 +14314,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1355483335}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1552394222 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7030442115134628275, guid: a9aee178502142e4f8951fa37f38029e,
-    type: 3}
-  m_PrefabInstance: {fileID: 5391702131951857840}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &1564411229
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -14690,6 +14707,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1969759338}
     m_Modifications:
+    - target: {fileID: 28126326174981630, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 330585545}
     - target: {fileID: 2961988817976030328, guid: d68be3ea9a6076a408850e95b5993c6a,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -14744,6 +14766,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Monster (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -18059,6 +18091,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7605624197092695555, guid: d5ae8be66e0cc4b4781879c6aea37a41,
+        type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 330585545}
     m_RemovedComponents:
     - {fileID: 4510656290448403658, guid: d5ae8be66e0cc4b4781879c6aea37a41, type: 3}
     - {fileID: 3020903489236266437, guid: d5ae8be66e0cc4b4781879c6aea37a41, type: 3}
@@ -20622,6 +20659,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1969759338}
     m_Modifications:
+    - target: {fileID: 28126326174981630, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: targetCamera
+      value: 
+      objectReference: {fileID: 330585545}
     - target: {fileID: 2961988817976030328, guid: d68be3ea9a6076a408850e95b5993c6a,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -20676,6 +20718,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Monster
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5343544882825102122, guid: d68be3ea9a6076a408850e95b5993c6a,
+        type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
