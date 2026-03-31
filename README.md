@@ -3,7 +3,7 @@
 > Unity로 개발한 모바일 하이퍼캐주얼 감옥 경영 시뮬레이션 게임  
 > 자원 수집, NPC 자동화, 감옥 확장, 전투 시스템까지 구현한 프로젝트
 
-![Prison Life 데모](./Docs/demo.gif)
+![Prison Life 데모](./Docs/PrisonLife.gif)
 
 🎥 [게임 플레이 영상 보기](https://drive.google.com/file/d/1Y6Gkcy7GrPQe-Xdmw-8bBURrZwgIj9KN/view?usp=drive_link)
 
