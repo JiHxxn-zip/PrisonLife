@@ -8,13 +8,11 @@ using UnityEngine;
 public class MetalExchangeZone : MonoBehaviour
 {
     [Header("Metal Sell Position")]
-    [SerializeField] private Transform sellPos;
     [SerializeField] private Vector3 metalLocalOffset = Vector3.zero;
     [SerializeField] private float metalSpacingY = 0.5f;
 
     [Header("Handcuffs Production")]
     [SerializeField] private GameObject handcuffsPrefab;
-    [SerializeField] private Transform handcuffsAnchor;
     [SerializeField] private Vector3 handcuffsLocalOffset = Vector3.zero;
     [SerializeField] private float handcuffsSpacingY = 0.5f;
 
@@ -37,6 +35,10 @@ public class MetalExchangeZone : MonoBehaviour
     [SerializeField] private float arcHeight = 2.5f;
     [Tooltip("sellPos까지 비행 시간 (초)")]
     [SerializeField] private float arcFlightDuration = 0.6f;
+
+    [Header("Sub Triggers")]
+    [SerializeField] private MetalExchangeSellTrigger sellTrigger;
+    [SerializeField] private MetalExchangeHandcuffsCollectTrigger handcuffsTrigger;
 
     [Header("Working Indicator")]
     [Tooltip("작업 중일 때 표시할 월드 UI 이미지 오브젝트")]
@@ -61,12 +63,12 @@ public class MetalExchangeZone : MonoBehaviour
     private Vector3 indicatorBaseLocalPos;
     private Coroutine indicatorCoroutine;
 
-    public Transform SellPos => sellPos;
+    public Transform SellPos => sellTrigger != null ? sellTrigger.transform : transform;
 
     private void Awake()
     {
-        if (sellPos == null) sellPos = transform;
-        if (handcuffsAnchor == null) handcuffsAnchor = transform;
+        sellTrigger?.Initialize(this);
+        handcuffsTrigger?.Initialize(this);
 
         SetMaxTextActive(metalMaxText, false);
         SetMaxTextActive(handcuffsMaxText, false);
@@ -109,7 +111,7 @@ public class MetalExchangeZone : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / arcFlightDuration);
 
             // 포물선: Lerp + sin 아치
-            Vector3 pos = Vector3.Lerp(from, sellPos.position, t);
+            Vector3 pos = Vector3.Lerp(from, sellTrigger.transform.position, t);
             pos.y += arcHeight * Mathf.Sin(t * Mathf.PI);
             metalGo.transform.position = pos;
 
@@ -127,7 +129,7 @@ public class MetalExchangeZone : MonoBehaviour
     // 비행 완료한 Metal을 sellPos에 쌓고 판매 카운트 추가
     private void DepositNpcMetal(GameObject metalVisual)
     {
-        if (metalVisual == null || sellPos == null) return;
+        if (metalVisual == null || sellTrigger == null) return;
 
         if (zoneMetals.Count >= maxMetalStack)
         {
@@ -136,7 +138,7 @@ public class MetalExchangeZone : MonoBehaviour
             return;
         }
 
-        metalVisual.transform.SetParent(sellPos, false);
+        metalVisual.transform.SetParent(sellTrigger.transform, false);
         metalVisual.transform.localRotation = Quaternion.identity;
 
         Vector3 lp = metalLocalOffset;
@@ -198,7 +200,7 @@ public class MetalExchangeZone : MonoBehaviour
                 continue;
             }
 
-            m.transform.SetParent(sellPos, false);
+            m.transform.SetParent(sellTrigger.transform, false);
             zoneMetals.Add(m);
 
             ItemPickup pickup = m.GetComponent<ItemPickup>();
@@ -218,7 +220,7 @@ public class MetalExchangeZone : MonoBehaviour
 
     // ── NPC 전용 수거 API ─────────────────────────────────────
 
-    public Transform HandcuffsAnchor => handcuffsAnchor;
+    public Transform HandcuffsAnchor => handcuffsTrigger != null ? handcuffsTrigger.transform : transform;
     public int ProducedHandcuffsCount => producedHandcuffs.Count;
 
     // NpcDeliveryAgent가 호출 — producedHandcuffs를 NPC에게 넘기고 Zone 목록에서 제거
@@ -358,12 +360,12 @@ public class MetalExchangeZone : MonoBehaviour
         {
             if (handcuffsPool[i] != null && !handcuffsPool[i].activeSelf)
             {
-                handcuffsPool[i].transform.SetParent(handcuffsAnchor, false);
+                handcuffsPool[i].transform.SetParent(handcuffsTrigger.transform, false);
                 return handcuffsPool[i];
             }
         }
 
-        GameObject instance = Instantiate(handcuffsPrefab, handcuffsAnchor);
+        GameObject instance = Instantiate(handcuffsPrefab, handcuffsTrigger.transform);
         instance.name = $"Handcuffs_Zone_{handcuffsPool.Count}";
         handcuffsPool.Add(instance);
         return instance;

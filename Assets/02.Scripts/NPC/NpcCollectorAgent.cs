@@ -24,6 +24,7 @@ public class NpcCollectorAgent : MonoBehaviour
 
     // ── 런타임 ────────────────────────────────────────────────
     private MetalExchangeZone exchangeZone;
+    private CollectionZonePool collectionPool;
     private NpcState currentState;
     private ItemPickup targetMetal;
     private float collectTimer;
@@ -32,9 +33,10 @@ public class NpcCollectorAgent : MonoBehaviour
     public NpcState CurrentState => currentState;
 
     // HiringZone 스폰 직후 호출
-    public void Initialize(MetalExchangeZone zone)
+    public void Initialize(MetalExchangeZone zone, CollectionZonePool pool = null)
     {
-        exchangeZone = zone;
+        exchangeZone   = zone;
+        collectionPool = pool;
         SetState(NpcState.SearchingMetal);
     }
 
@@ -140,6 +142,10 @@ public class NpcCollectorAgent : MonoBehaviour
     // ── 유틸 ─────────────────────────────────────────────────
     private ItemPickup FindNearestAvailableMetal()
     {
+        if (collectionPool != null)
+            return collectionPool.FindNearestAvailable(transform.position);
+
+        // fallback: collectionPool 미설정 시 씬 전체 탐색
         ItemPickup[] all = FindObjectsOfType<ItemPickup>();
         ItemPickup nearest = null;
         float nearestSqr = float.MaxValue;
@@ -148,16 +154,12 @@ public class NpcCollectorAgent : MonoBehaviour
         {
             if (!pickup.gameObject.activeSelf) continue;
             if (pickup.ItemType != ItemType.Metal) continue;
-            if (!pickup.IsPickupEnabled) continue;   // sellPos·비행 중인 Metal 제외
-            if (pickup.IsReservedByNpc) continue;    // 다른 NPC 예약 Metal 제외
-            if (pickup.GetComponentInParent<PlayerAgent>() != null) continue; // 플레이어가 들고있는 Metal 제외
+            if (!pickup.IsPickupEnabled) continue;
+            if (pickup.IsReservedByNpc) continue;
+            if (pickup.GetComponentInParent<PlayerAgent>() != null) continue;
 
             float sqr = SqrDist2D(transform.position, pickup.transform.position);
-            if (sqr < nearestSqr)
-            {
-                nearestSqr = sqr;
-                nearest = pickup;
-            }
+            if (sqr < nearestSqr) { nearestSqr = sqr; nearest = pickup; }
         }
 
         return nearest;

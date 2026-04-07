@@ -5,9 +5,14 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class MetalExchangeSellTrigger : MonoBehaviour
 {
-    [SerializeField] private MetalExchangeZone exchangeZone;
+    private MetalExchangeZone exchangeZone;
 
     public event Action<PlayerAgent> OnPlayerEntered;
+
+    public void Initialize(MetalExchangeZone zone)
+    {
+        exchangeZone = zone;
+    }
 
     private void Awake()
     {

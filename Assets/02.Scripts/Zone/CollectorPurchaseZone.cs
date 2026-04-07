@@ -12,6 +12,7 @@ public class CollectorPurchaseZone : AccumulatedPaymentZone
     [SerializeField] private int spawnCount = 3;
     [SerializeField] private GameObject npcPrefab;
     [SerializeField] private MetalExchangeZone targetExchangeZone;
+    [SerializeField] private CollectionZonePool collectionPool;
     [Tooltip("스폰 위치 목록 (미지정 시 Zone 위치 사용)")]
     [SerializeField] private Transform[] spawnPoints;
 
@@ -63,7 +64,7 @@ public class CollectorPurchaseZone : AccumulatedPaymentZone
         NpcCollectorAgent agent = npcObj.GetComponent<NpcCollectorAgent>();
 
         if (agent != null)
-            agent.Initialize(targetExchangeZone);
+            agent.Initialize(targetExchangeZone, collectionPool);
         else
             Debug.LogWarning("[CollectorPurchaseZone] NPC 프리팹에 NpcCollectorAgent가 없습니다.");
     }
