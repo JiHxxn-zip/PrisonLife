@@ -42,12 +42,14 @@ public class HyperCasualPlayerController : MonoBehaviour
     {
         _started = true;
         TutorialManager.Instance?.RegisterArrow(arrowPivot, arrowSprite);
+        CameraManager.Instance?.SetTarget(this.transform);
     }
 
     private void OnEnable()
     {
-        if (_started) TutorialManager.Instance?.RegisterArrow(arrowPivot, arrowSprite);
+        if (!_started) return;
 
+        TutorialManager.Instance?.RegisterArrow(arrowPivot, arrowSprite);
         CameraManager.Instance?.SetTarget(this.transform);
     }
 

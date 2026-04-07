@@ -10,8 +10,12 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
     [SerializeField] private int expandCost       = 50;
     [SerializeField] private int capacityIncrease = 20;
 
-    [Header("연결")]
-    [SerializeField] private PrisonZone prisonZone;
+    private PrisonZone prisonZone;
+
+    public void Initialize(PrisonZone zone)
+    {
+        prisonZone = zone;
+    }
 
     [Header("맵 전환")]
     [Tooltip("결제 완료 시 비활성화할 GameObject (기존 맵)")]
@@ -20,8 +24,6 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
     [SerializeField] private GameObject mapObjectToEnable;
 
     [Header("카메라 연출")]
-    [Tooltip("새 맵 감상 시 카메라가 바라볼 기준 위치")]
-    [SerializeField] private Transform mapViewTarget;
     [SerializeField] private float cameraTravelDuration = 1.5f;
     [SerializeField] private float mapShowDuration = 1f;
 
@@ -40,8 +42,8 @@ public class PrisonExpansionZone : AccumulatedPaymentZone
         controller?.SetMovementLocked(true);
 
         // 카메라 → 새 맵으로 이동
-        if (mapViewTarget != null)
-            yield return CameraManager.Instance?.StartCinematicLerp(mapViewTarget, cameraTravelDuration);
+        if (mapObjectToEnable != null)
+            yield return CameraManager.Instance?.StartCinematicLerp(mapObjectToEnable.transform, cameraTravelDuration);
 
         // 맵 전환
         if (mapObjectToDisable != null) mapObjectToDisable.SetActive(false);

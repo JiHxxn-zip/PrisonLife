@@ -11,12 +11,10 @@ public class PrisonZone : MonoBehaviour
     [SerializeField] private int maxCapacity = 20;
 
     [Header("확장 결제 Zone (만원 시 자동 활성화)")]
-    [SerializeField] private GameObject expansionZoneObject;
+    [SerializeField] private PrisonExpansionZone expansionZone;
 
     [Header("카메라 연출 (확장 Zone 활성화 전 시네마틱)")]
     [SerializeField] private PlayerAgent          player;
-    [Tooltip("카메라가 이동할 기준 Transform (미설정 시 expansionZoneObject 위치 사용)")]
-    [SerializeField] private Transform            expansionZoneCameraTarget;
     [SerializeField] private float                cameraTravelDuration = 1.5f;
     [SerializeField] private float                cameraHoldDuration   = 1.5f;
 
@@ -61,8 +59,11 @@ public class PrisonZone : MonoBehaviour
     private void Awake()
     {
         // 확장 존은 씬 시작 시 비활성 상태로 대기
-        if (expansionZoneObject != null)
-            expansionZoneObject.SetActive(false);
+        if (expansionZone != null)
+        {
+            expansionZone.Initialize(this);
+            expansionZone.gameObject.SetActive(false);
+        }
 
         RefreshUI();
     }
@@ -117,12 +118,12 @@ public class PrisonZone : MonoBehaviour
 
     private void ActivateExpansionZone()
     {
-        if (expansionZoneObject == null || !expansionAvailable) return;
+        if (expansionZone == null || !expansionAvailable) return;
 
         if (player != null)
             StartCoroutine(ExpansionCinematicRoutine());
         else
-            expansionZoneObject.SetActive(true);
+            expansionZone.gameObject.SetActive(true);
     }
 
     private IEnumerator ExpansionCinematicRoutine()
@@ -131,14 +132,12 @@ public class PrisonZone : MonoBehaviour
         player.SetMovementLocked(true);
 
         // 카메라를 ExpansionZone으로 이동
-        Transform camTarget = expansionZoneCameraTarget != null
-            ? expansionZoneCameraTarget
-            : expansionZoneObject.transform;
+        Transform camTarget = expansionZone.transform;
 
         yield return CameraManager.Instance?.StartCinematicLerp(camTarget, cameraTravelDuration);
 
         // 카메라 도착 후 ExpansionZone 활성화
-        expansionZoneObject.SetActive(true);
+        expansionZone.gameObject.SetActive(true);
         Debug.Log("[PrisonZone] 만원 — 확장 결제 Zone 활성화");
 
         // 해당 위치에서 대기
@@ -153,8 +152,8 @@ public class PrisonZone : MonoBehaviour
 
     public void DeactivateExpansionZone()
     {
-        if (expansionZoneObject == null) return;
-        expansionZoneObject.SetActive(false);
+        if (expansionZone == null) return;
+        expansionZone.gameObject.SetActive(false);
         expansionAvailable = false;
         Debug.Log("[PrisonZone] 확장 결제 Zone 비활성화 — 이후 만원 시 입장 차단만 적용");
     }

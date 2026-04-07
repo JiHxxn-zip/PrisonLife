@@ -96,6 +96,31 @@ public class CollectionZonePool : MonoBehaviour
         }
     }
 
+    // 풀 내에서 수집 가능한 Metal 중 from에 가장 가까운 것을 반환
+    public ItemPickup FindNearestAvailable(Vector3 from)
+    {
+        ItemPickup nearest = null;
+        float nearestSqr = float.MaxValue;
+
+        for (int i = 0; i < pooledItems.Count; i++)
+        {
+            GameObject go = pooledItems[i];
+            if (go == null || !go.activeSelf) continue;
+
+            ItemPickup pickup = go.GetComponent<ItemPickup>();
+            if (pickup == null || !pickup.IsPickupEnabled) continue;
+            if (pickup.IsReservedByNpc) continue;
+            if (pickup.GetComponentInParent<PlayerAgent>() != null) continue;
+
+            float dx = from.x - go.transform.position.x;
+            float dz = from.z - go.transform.position.z;
+            float sqr = dx * dx + dz * dz;
+            if (sqr < nearestSqr) { nearestSqr = sqr; nearest = pickup; }
+        }
+
+        return nearest;
+    }
+
     // 모든 아이템을 풀로 되돌려(비활성화) 존을 비우기
     public void DeactivateAllItems()
     {
