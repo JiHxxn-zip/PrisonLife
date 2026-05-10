@@ -7,6 +7,8 @@
 
 🎥 [게임 플레이 영상 보기](https://drive.google.com/file/d/1Y6Gkcy7GrPQe-Xdmw-8bBURrZwgIj9KN/view?usp=drive_link)
 
+---
+
 ## 프로젝트 개요
 
 **Prison Life**는 Unity로 개발한 모바일 하이퍼캐주얼 감옥 경영 시뮬레이션 게임입니다.  
@@ -15,12 +17,15 @@
 챕터 2에서는 전투 요소가 추가되어, 단순 경영 루프를 넘어 액션 기반 플레이로 확장되도록 설계했습니다.  
 
 ---
+
 - **장르**: 하이퍼캐주얼 / 방치형 시뮬레이션
 - **플랫폼**: 모바일 (720×1280)
 - **엔진**: Unity
 - **레퍼런스**: Supercent의 *Prison Life*를 참고하여 구현한 개인 프로젝트
 
 - ## 아키텍처 및 기술 특징
+
+---
 
 ### 디자인 패턴
 - **Singleton**: `UIManager`, `CameraManager`, `TutorialManager`
