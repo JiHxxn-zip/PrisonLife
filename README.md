@@ -40,3 +40,5 @@
 - **UI 계층 분리**: 챕터별 `IChapterUI` 인터페이스 적용
 - **Arc Flight 연출**: Metal, Money, Handcuffs의 포물선 이동 구현
 - **단일 씬 + 챕터 전환 구조** 적용
+
+---
