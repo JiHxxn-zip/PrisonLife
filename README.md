@@ -23,9 +23,9 @@
 - **엔진**: Unity
 - **레퍼런스**: Supercent의 *Prison Life*를 참고하여 구현한 개인 프로젝트
 
-- ## 아키텍처 및 기술 특징
-
 ---
+
+## 아키텍처 및 기술 특징
 
 ### 디자인 패턴
 - **Singleton**: `UIManager`, `CameraManager`, `TutorialManager`
